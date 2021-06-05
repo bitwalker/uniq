@@ -19,6 +19,8 @@ defmodule Uniq.MixProject do
 
   # Ensure we're on OTP 21.2+
   with {:ok, otp_version} <- otp_version do
+    Application.put_env(:uniq, :otp_version, otp_version, persistent: true)
+
     unless Version.match?(otp_version, ">= 21.2.0", allow_pre: true) do
       Mix.raise(":uniq requires OTP 21.2 or later, but you are running #{otp_version}")
     end
@@ -27,7 +29,7 @@ defmodule Uniq.MixProject do
   def project do
     [
       app: :uniq,
-      version: "0.1.0",
+      version: "0.2.0",
       elixir: "~> 1.11",
       description: description(),
       package: package(),
@@ -39,12 +41,19 @@ defmodule Uniq.MixProject do
         docs: :docs,
         "hex.publish": :docs
       ],
-      name: "UUID",
-      source_url: "https://github.com/bitwalker/uuids",
-      homepage_url: "http://github.com/bitwalker/uuids",
+      name: "Uniq",
+      source_url: "https://github.com/bitwalker/uniq",
+      homepage_url: "http://github.com/bitwalker/uniq",
       docs: [
-        main: "UUID",
-        extras: ["README.md"]
+        main: "readme",
+        api_reference: false,
+        extra_section: "Extras",
+        extras: [
+          {:"README.md", [title: "About"]},
+          "guides/using_with_ecto.md",
+          "guides/migration_from_elixir_uuid.md",
+          {:"LICENSE.md", [title: "License"]}
+        ]
       ]
     ]
   end

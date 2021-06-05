@@ -2,14 +2,7 @@ defmodule Uniq.UUID do
   @moduledoc """
   This module provides RFC 4122 compliant universally unique identifiers (UUIDs).
 
-  Features:
-
-  * Supports variants 1-5 as described in the RFC
-  * Supports UUID v6, as proposed [here](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format),
-  which provides database-friendly lexicographical sorting by timestamp, as well as other improvements to the original RFC.
-  * Supports formatting/parsing various string formats, including the raw binary encoding
-  * Can be used in place of `Ecto.UUID`
-  * Supports serialization to/from JSON, using the human-readable string format
+  See the [README](README.md) for general usage information.
   """
   use Bitwise, skip_operators: true
 
@@ -17,11 +10,17 @@ defmodule Uniq.UUID do
 
   defstruct [:format, :version, :variant, :time, :seq, :node, :bytes]
 
-  @compile {:inline, [format_default: 1, c: 1]}
+  @compile {:inline, [format_default: 1, c: 1, decode_hex: 1]}
 
   @type t :: <<_::128>>
+  @type formatted ::
+          t
+          | <<_::360>>
+          | <<_::288>>
+          | <<_::256>>
+          | <<_::176>>
   @type format :: :default | :raw | :hex | :urn | :slug
-  @type namespace :: :dns | :url | :oid | :x500 | nil
+  @type namespace :: :dns | :url | :oid | :x500 | nil | formatted
 
   @type info :: %__MODULE__{
           format: :raw | :hex | :default | :urn | :slug,
@@ -35,6 +34,13 @@ defmodule Uniq.UUID do
 
   @formats [:default, :raw, :hex, :urn, :slug]
   @namespaces [:dns, :url, :oid, :x500, nil]
+
+  # Namespaces
+  @dns_namespace_id Base.decode16!("6ba7b8109dad11d180b400c04fd430c8", case: :lower)
+  @url_namespace_id Base.decode16!("6ba7b8119dad11d180b400c04fd430c8", case: :lower)
+  @oid_namespace_id Base.decode16!("6ba7b8129dad11d180b400c04fd430c8", case: :lower)
+  @x500_namespace_id Base.decode16!("6ba7b8149dad11d180b400c04fd430c8", case: :lower)
+  @nil_id <<0::128>>
 
   # Variants
   @reserved_ncs <<0::1>>
@@ -394,9 +400,6 @@ defmodule Uniq.UUID do
     strict? = Keyword.get(opts, :strict, false)
 
     case parse(bin) do
-      {:ok, _} when not strict? ->
-        true
-
       {:ok, %__MODULE__{version: 6}} when strict? ->
         false
 
@@ -481,6 +484,9 @@ defmodule Uniq.UUID do
           {:ok, %__MODULE__{uuid | bytes: bin}}
         end
 
+      _ when bin == @nil_id ->
+        {:ok, %__MODULE__{acc | bytes: @nil_id}}
+
       _ ->
         {:error, {:unknown_version, version}}
     end
@@ -534,18 +540,19 @@ defmodule Uniq.UUID do
 
   # Parses proposed version 6 uuids, which are very much like version 1, but with some field ordering changes
   defp parse_raw(6, <<1::1, 0::1>> = variant, time, rest, acc) do
-    with <<time_hi::bits(48), _version::4, time_lo::bits(12)>> <- time,
-         <<timestamp::uint(60)>> <- <<time_hi::bits(48), time_lo::bits(12)>>,
+    with <<time_hi::48, _version::4, time_lo::12>> <- <<time::64>>,
+         <<timestamp::uint(60)>> <- <<time_hi::48, time_lo::12>>,
          <<clock::uint(14), node::bits(48)>> <-
            rest do
-      %__MODULE__{
-        acc
-        | version: 6,
-          variant: variant,
-          time: timestamp,
-          seq: clock,
-          node: node
-      }
+      {:ok,
+       %__MODULE__{
+         acc
+         | version: 6,
+           variant: variant,
+           time: timestamp,
+           seq: clock,
+           node: node
+       }}
     else
       _ ->
         {:error, {:invalid_format, :v6}}
@@ -563,11 +570,17 @@ defmodule Uniq.UUID do
 
   See `to_string/2` if you want to specify what format to produce.
   """
-  @spec to_string(t | info) :: String.t()
+  @spec to_string(formatted | info) :: String.t()
   def to_string(uuid)
 
   def to_string(<<raw::bits(128)>>),
     do: format(raw, :default)
+
+  def to_string(uuid) when is_binary(uuid) do
+    uuid
+    |> string_to_binary!()
+    |> format(:default)
+  end
 
   def to_string(%__MODULE__{bytes: raw, format: format}),
     do: format(raw, format)
@@ -583,11 +596,17 @@ defmodule Uniq.UUID do
   * `:slug`, produces strings like `"-B1Prn3sEdCnZQCgyR5r9g=="`
   * `:raw`, produces the raw binary encoding of the uuid in 128 bits
   """
-  @spec to_string(t | info, format) :: String.t()
+  @spec to_string(formatted | info, format) :: String.t()
   def to_string(uuid, format)
 
   def to_string(<<raw::bits(128)>>, format) when format in @formats,
     do: format(raw, format)
+
+  def to_string(uuid, format) when is_binary(uuid) and format in @formats do
+    uuid
+    |> string_to_binary!()
+    |> format(format)
+  end
 
   def to_string(%__MODULE__{bytes: raw}, format) when format in @formats,
     do: format(raw, format)
@@ -602,7 +621,7 @@ defmodule Uniq.UUID do
   def string_to_binary!(<<_::128>> = uuid), do: uuid
 
   def string_to_binary!(<<hex::bytes(32)>>) do
-    :binary.decode_hex(hex)
+    decode_hex(hex)
   rescue
     _ ->
       raise ArgumentError, message: "invalid uuid string"
@@ -611,7 +630,7 @@ defmodule Uniq.UUID do
   def string_to_binary!(
         <<a::bytes(8), ?-, b::bytes(4), ?-, c::bytes(4), ?-, d::bytes(4), ?-, e::bytes(12)>>
       ) do
-    :binary.decode_hex(a <> b <> c <> d <> e)
+    decode_hex(a <> b <> c <> d <> e)
   rescue
     _ ->
       raise ArgumentError, message: "invalid uuid string"
@@ -789,10 +808,10 @@ defmodule Uniq.UUID do
   defp hash(:md5, data), do: :crypto.hash(:md5, data)
   defp hash(:sha, data), do: :binary.part(:crypto.hash(:sha, data), 0, 16)
 
-  @predefined_namespace_id Base.decode16!("6ba7b8109dad11d180b400c04fd430c8", case: :mixed)
-  @nil_id <<0::128>>
-
-  defp namespace_id(ns) when ns in [:dns, :url, :oid, :x500], do: @predefined_namespace_id
+  defp namespace_id(:dns), do: @dns_namespace_id
+  defp namespace_id(:url), do: @url_namespace_id
+  defp namespace_id(:oid), do: @oid_namespace_id
+  defp namespace_id(:x500), do: @x500_namespace_id
   defp namespace_id(nil), do: @nil_id
 
   defp namespace_id(<<_::128>> = ns), do: ns
@@ -834,6 +853,48 @@ defmodule Uniq.UUID do
         message: "expected a valid namespace atom (:dns, :url, :oid, :x500), or a UUID string"
       )
 
+  otp_version = Application.compile_env(:uniq, :otp_version, Version.parse!("1.0.0"))
+
+  if Version.match?(otp_version, ">= 24.0.0", allow_pre: true) do
+    defp decode_hex(bin), do: :binary.decode_hex(bin)
+  else
+    defp decode_hex(
+           <<a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4, e1,
+             e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12>>
+         ) do
+      <<d(a1)::4, d(a2)::4, d(a3)::4, d(a4)::4, d(a5)::4, d(a6)::4, d(a7)::4, d(a8)::4, d(b1)::4,
+        d(b2)::4, d(b3)::4, d(b4)::4, d(c1)::4, d(c2)::4, d(c3)::4, d(c4)::4, d(d1)::4, d(d2)::4,
+        d(d3)::4, d(d4)::4, d(e1)::4, d(e2)::4, d(e3)::4, d(e4)::4, d(e5)::4, d(e6)::4, d(e7)::4,
+        d(e8)::4, d(e9)::4, d(e10)::4, d(e11)::4, d(e12)::4>>
+    end
+
+    @compile {:inline, d: 1}
+
+    defp d(?0), do: 0
+    defp d(?1), do: 1
+    defp d(?2), do: 2
+    defp d(?3), do: 3
+    defp d(?4), do: 4
+    defp d(?5), do: 5
+    defp d(?6), do: 6
+    defp d(?7), do: 7
+    defp d(?8), do: 8
+    defp d(?9), do: 9
+    defp d(?A), do: 10
+    defp d(?B), do: 11
+    defp d(?C), do: 12
+    defp d(?D), do: 13
+    defp d(?E), do: 14
+    defp d(?F), do: 15
+    defp d(?a), do: 10
+    defp d(?b), do: 11
+    defp d(?c), do: 12
+    defp d(?d), do: 13
+    defp d(?e), do: 14
+    defp d(?f), do: 15
+    defp d(_), do: throw(:error)
+  end
+
   ## Ecto
 
   if Code.ensure_loaded?(Ecto.Type) do
@@ -841,11 +902,66 @@ defmodule Uniq.UUID do
 
     @doc false
     @impl Ecto.Type
-    def type, do: :binary_id
+    def type, do: :binary
 
     @doc false
     @impl Ecto.Type
-    def autogenerate(), do: uuid4()
+    def autogenerate(), do: uuid4(:raw)
+
+    # This is provided as a helper for autogenerating version 3 or 5 uuids
+    @doc false
+    def autogenerate(opts) when is_list(opts) do
+      with {:ok, v} <- Keyword.fetch(opts, :version) do
+        case v do
+          1 ->
+            uuid1(:raw)
+
+          4 ->
+            uuid4(:raw)
+
+          6 ->
+            uuid6(:raw)
+
+          v when v in [3, 5] ->
+            with {:ok, ns} when is_binary(ns) <- Keyword.fetch(opts, :namespace) do
+              # 64 bits of entropy should be more than sufficient, since the total entropy
+              # of the input here is 192 bits, which we get from the namespace (128 bits) + the name (64 bits).
+              # That is then represented using only 128 bits (an entire MD5 hash, or 128 of the
+              # 160 bits of a SHA1 hash). In short, its doubtful that using more than 8 bytes
+              # of random data is going to have any appreciable benefit on uniqueness. Discounting
+              # the namespace, the total entropy is only 64 bits, which in practice is constrained
+              # by the hash itself, which is then further constrained by the fact that 6 bits of the
+              # UUID are reserved for version and variant information. In short, even though we are
+              # assuming a namespace that can contain 2^64 unique values, in practice it is less than
+              # that, though it still leaves room for an astronomical number of unique identifiers.
+              name = :crypto.strong_rand_bytes(8)
+
+              case v do
+                3 -> uuid3(ns, name, :raw)
+                5 -> uuid5(ns, name, :raw)
+              end
+            else
+              {:ok, ns} when is_atom(ns) ->
+                raise ArgumentError,
+                  message: "autogeneration is not supported in the #{inspect(ns)} namespace"
+
+              {:ok, ns} ->
+                raise ArgumentError, message: "invalid namespace: #{inspect(ns)}"
+
+              _ ->
+                raise ArgumentError,
+                  message:
+                    "you must specify the :namespace option when generating version #{inspect(v)} uuids"
+            end
+
+          v ->
+            raise ArgumentError, message: "invalid uuid version: #{inspect(v)}"
+        end
+      else
+        _ ->
+          raise ArgumentError, message: "you must specify the :version option"
+      end
+    end
 
     @doc false
     @impl Ecto.Type
