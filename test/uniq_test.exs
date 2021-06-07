@@ -1,5 +1,7 @@
 defmodule Uniq.Test do
   use ExUnit.Case, async: true
+  import ExUnitProperties
+  import Uniq.Test.Generators
 
   doctest Uniq.UUID
 
@@ -59,6 +61,42 @@ defmodule Uniq.Test do
 
     test "can parse version 6", %{uuids: uuids} do
       assert parse(6, uuids)
+    end
+
+    property "can parse any 128-bit binary with valid version/variant values" do
+      check all({version, variant, uuid} <- valid_uuid()) do
+        assert {:ok, %UUID{version: ^version, variant: ^variant}} = UUID.parse(uuid)
+      end
+    end
+
+    property "will reject any 128-bit binary with invalid version/variant values" do
+      check all({_, _, uuid} <- invalid_uuid()) do
+        assert {:error, _reason} = UUID.parse(uuid)
+      end
+    end
+
+    property "can parse any 32-byte hex string which represents a valid uuid" do
+      check all({version, variant, uuid} <- valid_uuid(:hex)) do
+        assert {:ok, %UUID{version: ^version, variant: ^variant}} = UUID.parse(uuid)
+      end
+    end
+
+    property "will reject any 32-byte hex string which represents an invalid uuid" do
+      check all({_, _, uuid} <- invalid_uuid(:hex)) do
+        assert {:error, _} = UUID.parse(uuid)
+      end
+    end
+
+    property "can parse any 22-byte base64-encoded string which represents a valid uuid" do
+      check all({version, variant, uuid} <- valid_uuid(:slug)) do
+        assert {:ok, %UUID{version: ^version, variant: ^variant}} = UUID.parse(uuid)
+      end
+    end
+
+    property "will reject any 22-byte base64-encoded string which represents an invalid uuid" do
+      check all({_, _, uuid} <- invalid_uuid(:slug)) do
+        assert {:error, _} = UUID.parse(uuid)
+      end
     end
   end
 
@@ -170,12 +208,12 @@ defmodule Uniq.Test do
 
     assert ^default = UUID.to_string(raw)
     assert ^raw = UUID.to_string(raw, :raw)
-    assert ^hex = UUID.to_string(raw, :hex)
+    assert ^hex = UUID.to_string(raw, :hex) |> String.downcase()
     assert ^urn = UUID.to_string(raw, :urn)
     assert ^slug = UUID.to_string(raw, :slug)
 
     assert ^raw = UUID.to_string(default, :raw)
-    assert ^default = UUID.to_string(slug, :default)
+    assert ^default = UUID.to_string(slug, :default) |> String.downcase()
 
     true
   end

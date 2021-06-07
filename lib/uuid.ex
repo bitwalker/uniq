@@ -10,8 +10,6 @@ defmodule Uniq.UUID do
 
   defstruct [:format, :version, :variant, :time, :seq, :node, :bytes]
 
-  @compile {:inline, [format_default: 1, c: 1, decode_hex: 1]}
-
   @type t :: <<_::128>>
   @type formatted ::
           t
@@ -368,7 +366,7 @@ defmodule Uniq.UUID do
     with {:ok, uuid} <- parse(bin) do
       {:ok,
        [
-         uuid: to_string(uuid),
+         uuid: uuid |> to_string() |> String.downcase(),
          binary: uuid.bytes,
          type: uuid.format,
          version: uuid.version,
@@ -448,12 +446,12 @@ defmodule Uniq.UUID do
     do: parse_raw(bin, %__MODULE__{format: :raw})
 
   def parse(<<bin::bytes(32)>>) do
-    with {:ok, raw} <- Base.decode16(bin, case: :mixed) do
-      parse_raw(raw, %__MODULE__{format: :hex})
-    else
-      :error ->
-        {:error, {:invalid_format, :hex}}
-    end
+    bin
+    |> decode_hex()
+    |> parse_raw(%__MODULE__{format: :hex})
+  rescue
+    ArgumentError ->
+      {:error, {:invalid_format, :hex}}
   end
 
   def parse(<<a::bytes(8), ?-, b::bytes(4), ?-, c::bytes(4), ?-, d::bytes(4), ?-, e::bytes(12)>>) do
@@ -622,18 +620,12 @@ defmodule Uniq.UUID do
 
   def string_to_binary!(<<hex::bytes(32)>>) do
     decode_hex(hex)
-  rescue
-    _ ->
-      raise ArgumentError, message: "invalid uuid string"
   end
 
   def string_to_binary!(
         <<a::bytes(8), ?-, b::bytes(4), ?-, c::bytes(4), ?-, d::bytes(4), ?-, e::bytes(12)>>
       ) do
     decode_hex(a <> b <> c <> d <> e)
-  rescue
-    _ ->
-      raise ArgumentError, message: "invalid uuid string"
   end
 
   def string_to_binary!(<<slug::bytes(22)>>) do
@@ -717,11 +709,16 @@ defmodule Uniq.UUID do
     value
   end
 
-  defp format(raw, :raw), do: raw
-  defp format(raw, :default), do: format_default(raw)
-  defp format(raw, :hex), do: IO.iodata_to_binary(for <<bs::4 <- raw>>, do: c(bs))
-  defp format(raw, :urn), do: "urn:uuid:#{format(raw, :default)}"
-  defp format(raw, :slug), do: Base.url_encode64(raw, padding: false)
+  @doc false
+  def format(raw, format)
+
+  def format(raw, :raw), do: raw
+  def format(raw, :default), do: format_default(raw)
+  def format(raw, :hex), do: encode_hex(raw)
+  def format(raw, :urn), do: "urn:uuid:#{format(raw, :default)}"
+  def format(raw, :slug), do: Base.url_encode64(raw, padding: false)
+
+  @compile {:inline, [format_default: 1]}
 
   defp format_default(<<
          a1::4,
@@ -757,27 +754,12 @@ defmodule Uniq.UUID do
          e11::4,
          e12::4
        >>) do
-    <<c(a1), c(a2), c(a3), c(a4), c(a5), c(a6), c(a7), c(a8), ?-, c(b1), c(b2), c(b3), c(b4), ?-,
-      c(c1), c(c2), c(c3), c(c4), ?-, c(d1), c(d2), c(d3), c(d4), ?-, c(e1), c(e2), c(e3), c(e4),
-      c(e5), c(e6), c(e7), c(e8), c(e9), c(e10), c(e11), c(e12)>>
+    <<e(a1), e(a2), e(a3), e(a4), e(a5), e(a6), e(a7), e(a8), ?-, e(b1), e(b2), e(b3), e(b4), ?-,
+      e(c1), e(c2), e(c3), e(c4), ?-, e(d1), e(d2), e(d3), e(d4), ?-, e(e1), e(e2), e(e3), e(e4),
+      e(e5), e(e6), e(e7), e(e8), e(e9), e(e10), e(e11), e(e12)>>
   end
 
-  defp c(0), do: ?0
-  defp c(1), do: ?1
-  defp c(2), do: ?2
-  defp c(3), do: ?3
-  defp c(4), do: ?4
-  defp c(5), do: ?5
-  defp c(6), do: ?6
-  defp c(7), do: ?7
-  defp c(8), do: ?8
-  defp c(9), do: ?9
-  defp c(10), do: ?a
-  defp c(11), do: ?b
-  defp c(12), do: ?c
-  defp c(13), do: ?d
-  defp c(14), do: ?e
-  defp c(15), do: ?f
+  @doc false
 
   defp format_variant(@reserved_future), do: :reserved_future
   defp format_variant(@reserved_ms), do: :reserved_microsoft
@@ -855,9 +837,15 @@ defmodule Uniq.UUID do
 
   otp_version = Application.compile_env(:uniq, :otp_version, Version.parse!("1.0.0"))
 
+  @compile {:inline, [encode_hex: 1, decode_hex: 1]}
+
   if Version.match?(otp_version, ">= 24.0.0", allow_pre: true) do
+    defp encode_hex(bin), do: :binary.encode_hex(bin)
+
     defp decode_hex(bin), do: :binary.decode_hex(bin)
   else
+    defp encode_hex(bin), do: IO.iodata_to_binary(for <<bs::4 <- bin>>, do: e(bs))
+
     defp decode_hex(
            <<a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4, e1,
              e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12>>
@@ -866,6 +854,9 @@ defmodule Uniq.UUID do
         d(b2)::4, d(b3)::4, d(b4)::4, d(c1)::4, d(c2)::4, d(c3)::4, d(c4)::4, d(d1)::4, d(d2)::4,
         d(d3)::4, d(d4)::4, d(e1)::4, d(e2)::4, d(e3)::4, d(e4)::4, d(e5)::4, d(e6)::4, d(e7)::4,
         d(e8)::4, d(e9)::4, d(e10)::4, d(e11)::4, d(e12)::4>>
+    catch
+      :throw, char ->
+        raise ArgumentError, message: "#{inspect(<<char::utf8>>)} is not valid hex"
     end
 
     @compile {:inline, d: 1}
@@ -892,8 +883,27 @@ defmodule Uniq.UUID do
     defp d(?d), do: 13
     defp d(?e), do: 14
     defp d(?f), do: 15
-    defp d(_), do: throw(:error)
+    defp d(char), do: throw(char)
   end
+
+  @compile {:inline, e: 1}
+
+  defp e(0), do: ?0
+  defp e(1), do: ?1
+  defp e(2), do: ?2
+  defp e(3), do: ?3
+  defp e(4), do: ?4
+  defp e(5), do: ?5
+  defp e(6), do: ?6
+  defp e(7), do: ?7
+  defp e(8), do: ?8
+  defp e(9), do: ?9
+  defp e(10), do: ?a
+  defp e(11), do: ?b
+  defp e(12), do: ?c
+  defp e(13), do: ?d
+  defp e(14), do: ?e
+  defp e(15), do: ?f
 
   ## Ecto
 

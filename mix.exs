@@ -36,6 +36,7 @@ defmodule Uniq.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
+      elixirc_paths: elixirc_paths(Mix.env()),
       preferred_cli_env: [
         bench: :bench,
         docs: :docs,
@@ -70,6 +71,9 @@ defmodule Uniq.MixProject do
     [bench: &run_bench/1]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
   defp run_bench([]) do
     for file <- Path.wildcard("bench/*.exs") do
       Mix.Task.run("run", [file])
@@ -86,7 +90,8 @@ defmodule Uniq.MixProject do
       {:benchee, "~> 1.0", only: [:bench]},
       {:ecto, "~> 3.0", optional: true},
       {:ex_doc, "> 0.0.0", only: [:docs], runtime: false},
-      {:elixir_uuid, "> 0.0.0", only: [:bench]}
+      {:elixir_uuid, "> 0.0.0", only: [:bench]},
+      {:stream_data, "~> 0.5", only: [:test]}
     ]
   end
 
