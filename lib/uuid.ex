@@ -835,7 +835,7 @@ defmodule Uniq.UUID do
         message: "expected a valid namespace atom (:dns, :url, :oid, :x500), or a UUID string"
       )
 
-  otp_version = Application.compile_env(:uniq, :otp_version, Version.parse!("1.0.0"))
+  otp_version = Application.get_env(:uniq, :otp_version, Version.parse!("1.0.0"))
 
   @compile {:inline, [encode_hex: 1, decode_hex: 1]}
 
