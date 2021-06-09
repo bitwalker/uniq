@@ -338,7 +338,7 @@ defmodule Uniq.UUID do
 
   # Examples
 
-      iex> UUID.info("870df8e8-3107-4487-8316-81e089b8c2cf")
+      iex> Uniq.UUID.info("870df8e8-3107-4487-8316-81e089b8c2cf", :keyword)
       {:ok, [uuid: "870df8e8-3107-4487-8316-81e089b8c2cf",
        binary: <<135, 13, 248, 232, 49, 7, 68, 135, 131, 22, 129, 224, 137, 184, 194, 207>>,
        type: :default,
