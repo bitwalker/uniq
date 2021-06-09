@@ -908,7 +908,7 @@ defmodule Uniq.UUID do
   ## Ecto
 
   if Code.ensure_loaded?(Ecto.Type) do
-    use Ecto.Type
+    @behaviour Ecto.Type
 
     @doc false
     @impl Ecto.Type
