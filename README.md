@@ -17,7 +17,7 @@ of both UUIDv1 and UUIDv4 to provide the best of both, while removing their down
 as URNs, e.g. `urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8`, as well as a compact, 22-character, base64-encoded format using
 a URI-safe alphabet (e.g. `a6e4EJ2tEdGAtADAT9QwyA`). 
 * Case-insensitive, i.e. `6ba7b810-9dad-11d1-80b4-00c04fd430c8` and `6BA7B810-9DAD-11D1-80B4-00C04FD430C8` have the same encoding
-* Supports Ecto out of the box, just use `Uniq.UUID` as the type of a field where you would use `Ecto.UUID`, and use `:binary` in your migrations.
+* Supports Ecto out of the box, just use `Uniq.UUID` as the type of a field where you would use `Ecto.UUID`. See the docs for more info.
 * Can be used as a drop-in replacement for `elixir_uuid`, see the docs for details on migrating
 
 ## Installation

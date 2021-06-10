@@ -907,125 +907,168 @@ defmodule Uniq.UUID do
 
   ## Ecto
 
-  if Code.ensure_loaded?(Ecto.Type) do
-    use Ecto.Type
+  if Code.ensure_loaded?(Ecto.ParameterizedType) do
+    use Ecto.ParameterizedType
 
     @doc false
-    @impl Ecto.Type
-    def type, do: :binary
+    @impl Ecto.ParameterizedType
+    def init(opts) do
+      schema = Keyword.fetch!(opts, :schema)
+      field = Keyword.fetch!(opts, :field)
+      format = Keyword.get(opts, :format, :default)
+      dump = Keyword.get(opts, :dump, :raw)
+
+      unless format in @formats do
+        raise ArgumentError,
+          message:
+            "invalid :format option, expected one of #{Enum.join(@formats, ",")}; got #{inspect(format)}"
+      end
+
+      unless dump in @formats do
+        raise ArgumentError,
+          message:
+            "invalid :dump option, expected one of #{Enum.join(@formats, ",")}; got #{inspect(format)}"
+      end
+
+      version = Keyword.get(opts, :version, 4)
+
+      unless version in [1, 3, 4, 5, 6] do
+        raise ArgumentError,
+          message:
+            "invalid uuid version, expected one of 1, 3, 4, 5, or 6; got #{inspect(version)}"
+      end
+
+      namespace = Keyword.get(opts, :namespace)
+
+      case namespace do
+        nil when version in [3, 5] ->
+          raise ArgumentError,
+            message: "you must set :namespace to a valid uuid when :version is 3 or 5"
+
+        nil ->
+          :ok
+
+        ns when ns in [:dns, :url, :oid, :x500] ->
+          raise ArgumentError,
+            message:
+              "you must set :namespace to a uuid, the predefined namespaces are not permitted here"
+
+        ns when is_binary(ns) ->
+          :ok
+
+        ns ->
+          raise ArgumentError,
+            message: "expected :namespace to be a binary, but got #{inspect(ns)}"
+      end
+
+      %{
+        schema: schema,
+        field: field,
+        format: format,
+        dump: dump,
+        version: version,
+        namespace: namespace
+      }
+    end
 
     @doc false
-    @impl Ecto.Type
-    def autogenerate(), do: uuid4(:raw)
+    @impl Ecto.ParameterizedType
+    def type(%{dump: :raw}), do: :binary
+    def type(_), do: :string
 
     # This is provided as a helper for autogenerating version 3 or 5 uuids
     @doc false
-    def autogenerate(opts) when is_list(opts) do
-      with {:ok, v} <- Keyword.fetch(opts, :version) do
-        case v do
-          1 ->
-            uuid1(:raw)
+    @impl Ecto.ParameterizedType
+    def autogenerate(%{format: format, version: version, namespace: namespace}) do
+      case version do
+        1 ->
+          uuid1(format)
 
-          4 ->
-            uuid4(:raw)
+        4 ->
+          uuid4(format)
 
-          6 ->
-            uuid6(:raw)
+        6 ->
+          uuid6(format)
 
-          v when v in [3, 5] ->
-            with {:ok, ns} when is_binary(ns) <- Keyword.fetch(opts, :namespace) do
-              # 64 bits of entropy should be more than sufficient, since the total entropy
-              # of the input here is 192 bits, which we get from the namespace (128 bits) + the name (64 bits).
-              # That is then represented using only 128 bits (an entire MD5 hash, or 128 of the
-              # 160 bits of a SHA1 hash). In short, its doubtful that using more than 8 bytes
-              # of random data is going to have any appreciable benefit on uniqueness. Discounting
-              # the namespace, the total entropy is only 64 bits, which in practice is constrained
-              # by the hash itself, which is then further constrained by the fact that 6 bits of the
-              # UUID are reserved for version and variant information. In short, even though we are
-              # assuming a namespace that can contain 2^64 unique values, in practice it is less than
-              # that, though it still leaves room for an astronomical number of unique identifiers.
-              name = :crypto.strong_rand_bytes(8)
+        v when v in [3, 5] ->
+          # 64 bits of entropy should be more than sufficient, since the total entropy
+          # of the input here is 192 bits, which we get from the namespace (128 bits) + the name (64 bits).
+          # That is then represented using only 128 bits (an entire MD5 hash, or 128 of the
+          # 160 bits of a SHA1 hash). In short, its doubtful that using more than 8 bytes
+          # of random data is going to have any appreciable benefit on uniqueness. Discounting
+          # the namespace, the total entropy is only 64 bits, which in practice is constrained
+          # by the hash itself, which is then further constrained by the fact that 6 bits of the
+          # UUID are reserved for version and variant information. In short, even though we are
+          # assuming a namespace that can contain 2^64 unique values, in practice it is less than
+          # that, though it still leaves room for an astronomical number of unique identifiers.
+          name = :crypto.strong_rand_bytes(8)
 
-              case v do
-                3 -> uuid3(ns, name, :raw)
-                5 -> uuid5(ns, name, :raw)
-              end
-            else
-              {:ok, ns} when is_atom(ns) ->
-                raise ArgumentError,
-                  message: "autogeneration is not supported in the #{inspect(ns)} namespace"
-
-              {:ok, ns} ->
-                raise ArgumentError, message: "invalid namespace: #{inspect(ns)}"
-
-              _ ->
-                raise ArgumentError,
-                  message:
-                    "you must specify the :namespace option when generating version #{inspect(v)} uuids"
-            end
-
-          v ->
-            raise ArgumentError, message: "invalid uuid version: #{inspect(v)}"
-        end
-      else
-        _ ->
-          raise ArgumentError, message: "you must specify the :version option"
+          case v do
+            3 -> uuid3(namespace, name, format)
+            5 -> uuid5(namespace, name, format)
+          end
       end
     end
 
     @doc false
-    @impl Ecto.Type
-    def cast(data)
+    @impl Ecto.ParameterizedType
+    def cast(data, params)
 
-    def cast(<<_::128>> = uuid),
-      do: {:ok, uuid}
-
-    def cast(uuid) when is_binary(uuid) do
-      {:ok, string_to_binary!(uuid)}
+    def cast(uuid, %{format: format}) when is_binary(uuid) do
+      {:ok, to_string(uuid, format)}
     rescue
       ArgumentError ->
         :error
     end
 
-    def cast(%__MODULE__{} = uuid),
-      do: {:ok, to_string(uuid)}
+    def cast(%__MODULE__{} = uuid, %{format: format}),
+      do: {:ok, to_string(uuid, format)}
 
     def cast(_), do: :error
 
     @doc false
-    @impl Ecto.Type
-    def load(<<_::128>> = uuid), do: {:ok, to_string(uuid)}
+    @impl Ecto.ParameterizedType
+    def load(value, loader, params)
 
-    def load(uuid) when is_binary(uuid) do
-      {:ok, string_to_binary!(uuid)}
+    def load(uuid, _loader, %{format: format}) when is_binary(uuid) do
+      {:ok, to_string(uuid, format)}
     rescue
       ArgumentError ->
         :error
     end
 
-    @doc false
-    @impl Ecto.Type
-    def dump(%__MODULE__{bytes: uuid}), do: {:ok, uuid}
-    def dump(<<_::128>> = uuid), do: {:ok, uuid}
+    def load(nil, _loader, %{format: format}),
+      do: {:ok, to_string(@nil_id, format)}
 
-    def dump(uuid) when is_binary(uuid) do
-      {:ok, string_to_binary!(uuid)}
+    @doc false
+    @impl Ecto.ParameterizedType
+    def dump(value, dumper, params)
+
+    def dump(%__MODULE__{} = uuid, _dumper, %{dump: format}),
+      do: {:ok, to_string(uuid, format)}
+
+    def dump(uuid, _dumper, %{dump: format}) when is_binary(uuid) do
+      {:ok, to_string(uuid, format)}
     rescue
       ArgumentError ->
         :error
     end
 
-    @doc false
-    @impl Ecto.Type
-    def embed_as(_format), do: :self
+    def dump(nil, _dumper, %{dump: format}),
+      do: {:ok, to_string(@nil_id, format)}
 
     @doc false
-    @impl Ecto.Type
-    def equal?(a, b)
+    @impl Ecto.ParameterizedType
+    def embed_as(_format, _params), do: :self
 
-    def equal?(nil, _), do: false
-    def equal?(_, nil), do: false
-    def equal?(a, b, _params), do: compare(a, b) == :eq
+    @doc false
+    @impl Ecto.ParameterizedType
+    def equal?(a, b, params)
+
+    def equal?(nil, nil, _), do: true
+    def equal?(nil, b, _), do: to_string(b, :raw) == @nil_id
+    def equal?(a, nil, _), do: to_string(a, :raw) == @nil_id
+    def equal?(a, b, _), do: compare(to_string(a), to_string(b)) == :eq
   end
 
   defimpl String.Chars do

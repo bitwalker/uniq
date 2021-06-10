@@ -18,9 +18,18 @@ defmodule Uniq.Ecto.Test do
 
     @namespace UUID.uuid5(:dns, "person.v5.uniq.example.com", :raw)
 
-    @primary_key {:id, Uniq.UUID,
-                  autogenerate: {Uniq.UUID, :autogenerate, [[version: 5, namespace: @namespace]]}}
+    @primary_key {:id, Uniq.UUID, version: 5, namespace: @namespace, autogenerate: true}
     schema "person_v5" do
+      field(:name, :string)
+    end
+  end
+
+  defmodule Person.Version6 do
+    use Ecto.Schema
+
+    @primary_key false
+    schema "person_v6" do
+      field(:id, Uniq.UUID, version: 6, autogenerate: true)
       field(:name, :string)
     end
   end
@@ -37,5 +46,11 @@ defmodule Uniq.Ecto.Test do
              |> TestRepo.insert!()
 
     assert {:ok, %UUID{version: 5}} = UUID.parse(uuid)
+
+    assert %Person.Version6{id: uuid} =
+             Ecto.Changeset.cast(%Person.Version6{}, %{name: "Paul"}, [:name])
+             |> TestRepo.insert!()
+
+    assert {:ok, %UUID{version: 6}} = UUID.parse(uuid)
   end
 end
