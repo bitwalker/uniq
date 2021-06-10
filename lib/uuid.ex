@@ -1033,4 +1033,16 @@ defmodule Uniq.UUID do
 
     def to_string(uuid), do: UUID.to_string(uuid)
   end
+
+  defimpl Inspect do
+    import Inspect.Algebra
+
+    def inspect(%Uniq.UUID{bytes: bytes, version: version}, opts) do
+      # Allow overriding the format in which UUIDs are displayed via custom inspect options
+      format = Keyword.get(opts.custom_options, :format, :default)
+      uuid = Uniq.UUID.to_string(bytes, format)
+
+      concat(["#UUIDv", Kernel.to_string(version), "<", uuid, ">"])
+    end
+  end
 end
