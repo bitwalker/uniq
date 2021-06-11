@@ -1024,7 +1024,9 @@ defmodule Uniq.UUID do
     def cast(%__MODULE__{} = uuid, %{format: format}),
       do: {:ok, to_string(uuid, format)}
 
-    def cast(_), do: :error
+    def cast(nil, _params), do: {:ok, nil}
+
+    def cast(_, _params), do: :error
 
     @doc false
     @impl Ecto.ParameterizedType
@@ -1037,8 +1039,8 @@ defmodule Uniq.UUID do
         :error
     end
 
-    def load(nil, _loader, %{format: format}),
-      do: {:ok, to_string(@nil_id, format)}
+    def load(nil, _loader, _params),
+      do: {:ok, nil}
 
     @doc false
     @impl Ecto.ParameterizedType
@@ -1054,8 +1056,8 @@ defmodule Uniq.UUID do
         :error
     end
 
-    def dump(nil, _dumper, %{dump: format}),
-      do: {:ok, to_string(@nil_id, format)}
+    def dump(nil, _dumper, _params),
+      do: {:ok, nil}
 
     @doc false
     @impl Ecto.ParameterizedType
