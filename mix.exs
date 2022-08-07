@@ -29,7 +29,7 @@ defmodule Uniq.MixProject do
   def project do
     [
       app: :uniq,
-      version: "0.4.2",
+      version: "0.4.3",
       elixir: "~> 1.11",
       description: description(),
       package: package(),
@@ -88,7 +88,7 @@ defmodule Uniq.MixProject do
   defp deps do
     [
       {:benchee, "~> 1.0", only: [:bench]},
-      {:ecto, "~> 3.0"},
+      {:ecto, "~> 3.0", optional: true},
       {:ex_doc, "> 0.0.0", only: [:docs], runtime: false},
       {:elixir_uuid, "> 0.0.0", only: [:bench]},
       {:stream_data, "~> 0.5", only: [:test]}
