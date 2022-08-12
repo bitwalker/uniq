@@ -51,6 +51,16 @@ defmodule Uniq.UUID do
   defmacrop uint(n), do: quote(do: unsigned - integer - size(unquote(n)))
   defmacrop biguint(n), do: quote(do: big - unsigned - integer - size(unquote(n)))
 
+  defmacro use_if_exists(module, opts) do
+    module = Macro.expand(module, __ENV__)
+
+    if Code.ensure_loaded?(module) do
+      quote do
+        use unquote(module), unquote(opts)
+      end
+    end
+  end
+
   @doc """
   Generates a UUID using the version 1 scheme, as described in RFC 4122
 
@@ -908,7 +918,7 @@ defmodule Uniq.UUID do
   ## Ecto
 
   if Code.ensure_loaded?(Ecto.ParameterizedType) do
-    use Ecto.ParameterizedType
+    __MODULE__.use_if_exists(Ecto.ParameterizedType)
 
     @doc false
     @impl Ecto.ParameterizedType
