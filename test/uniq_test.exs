@@ -16,7 +16,8 @@ defmodule Uniq.Test do
       4 => "e5a4a3c3-45a7-4d5a-9809-e253a6ff8da2",
       # generated in the :dns namespace, name "test"
       5 => "4be0643f-1d98-573b-97cd-ca98a65347dd",
-      6 => "1e7126af-f130-6780-adb4-8bbe7368fc2f"
+      6 => "1e7126af-f130-6780-adb4-8bbe7368fc2f",
+      7 => "0182b66c-29e7-7ae8-b60e-4b669fe07c77"
     }
 
     hex =
@@ -61,6 +62,10 @@ defmodule Uniq.Test do
 
     test "can parse version 6", %{uuids: uuids} do
       assert parse(6, uuids)
+    end
+
+    test "can parse version 7", %{uuids: uuids} do
+      assert parse(7, uuids)
     end
 
     property "can parse any 128-bit binary with valid version/variant values" do
@@ -124,6 +129,10 @@ defmodule Uniq.Test do
     test "can format version 6", %{uuids: uuids} do
       assert format(6, uuids)
     end
+
+    test "can format version 7", %{uuids: uuids} do
+      assert format(7, uuids)
+    end
   end
 
   describe "generating" do
@@ -183,6 +192,14 @@ defmodule Uniq.Test do
 
       assert {:ok, %UUID{format: :default, version: 6}} = UUID.parse(default)
       assert {:ok, %UUID{format: :raw, version: 6}} = UUID.parse(raw)
+    end
+
+    test "can generate version 7" do
+      default = UUID.uuid7()
+      raw = UUID.uuid7(:raw)
+
+      assert {:ok, %UUID{format: :default, version: 7}} = UUID.parse(default)
+      assert {:ok, %UUID{format: :raw, version: 7}} = UUID.parse(raw)
     end
   end
 
