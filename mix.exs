@@ -29,7 +29,7 @@ defmodule Uniq.MixProject do
   def project do
     [
       app: :uniq,
-      version: "0.4.4",
+      version: "0.5.0",
       elixir: "~> 1.11",
       description: description(),
       package: package(),
