@@ -248,8 +248,8 @@ defmodule Uniq.UUID do
   end
 
   @doc """
-  Generates a UUID using the proposed version 6 scheme,
-  found [here](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format).
+  Generates a UUID using the proposed version 6 scheme, found
+  [here](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format-04#section-5.1).
   This is a draft extension of RFC 4122, but has not yet been formally accepted.
 
   Version 6 provides the following benefits over versions 1 and 4:
@@ -270,6 +270,8 @@ defmodule Uniq.UUID do
 
   * [KSUID](https://github.com/segmentio/ksuid)
   * [ULID](https://github.com/ulid/spec)
+
+  Systems that do not involve legacy UUIDv1 SHOULD consider using UUIDv7 instead.
   """
   @spec uuid6() :: t
   @spec uuid6(format) :: t
@@ -287,6 +289,28 @@ defmodule Uniq.UUID do
     clock_seq = <<@rfc_variant, clock::biguint(14)>>
 
     raw = <<thi::48, tlo_and_version::bits(16), clock_seq::bits(16), node::bits(48)>>
+
+    format(raw, format)
+  end
+
+  @doc """
+  Generates a UUID using the proposed version 7 scheme, found
+  [here](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format-04#section-5.2).
+  This is a draft extension of RFC 4122, but has not yet been formally accepted.
+
+  UUID version 7 features a time-ordered value field derived from the widely implemented and well
+  known Unix Epoch timestamp source, the number of milliseconds seconds since midnight 1 Jan 1970
+  UTC, leap seconds excluded. As well as improved entropy characteristics over versions 1 or 6.
+
+  Implementations SHOULD utilize UUID version 7 over UUID version 1 and 6 if possible.
+  """
+  @spec uuid7() :: t
+  @spec uuid7(format) :: t
+  def uuid7(format \\ :default) when format in @formats do
+    time = System.system_time(:millisecond)
+    <<rand_a::12, _::6, rand_b::62>> = :crypto.strong_rand_bytes(10)
+
+    raw = <<time::biguint(48), 7::4, rand_a::12, @rfc_variant, rand_b::62>>
 
     format(raw, format)
   end
@@ -477,7 +501,7 @@ defmodule Uniq.UUID do
   # Parse version
   defp parse_raw(<<_::48, version::uint(4), _::bitstring>> = bin, acc) do
     case version do
-      v when v in [1, 3, 4, 5, 6] ->
+      v when v in [1, 3, 4, 5, 6, 7] ->
         with {:ok, uuid} <- parse_raw(version, bin, acc) do
           {:ok, %__MODULE__{uuid | bytes: bin}}
         end
@@ -533,6 +557,23 @@ defmodule Uniq.UUID do
     else
       other ->
         {:error, {:invalid_format, other, variant_size, clock_hi_size, clock_size}}
+    end
+  end
+
+  # Parses proposed version 7 uuids
+  defp parse_raw(7, <<1::1, 0::1>> = variant, time, rest, acc) do
+    with <<time::biguint(48), _version::4, _rand_a::12>> <- <<time::64>>,
+         <<_rand_b::62>> <- rest do
+      {:ok,
+       %__MODULE__{
+         acc
+         | version: 7,
+           variant: variant,
+           time: time
+       }}
+    else
+      _ ->
+        {:error, {:invalid_format, :v6}}
     end
   end
 
@@ -932,10 +973,10 @@ defmodule Uniq.UUID do
 
       version = Keyword.get(opts, :version, 4)
 
-      unless version in [1, 3, 4, 5, 6] do
+      unless version in [1, 3, 4, 5, 6, 7] do
         raise ArgumentError,
           message:
-            "invalid uuid version, expected one of 1, 3, 4, 5, or 6; got #{inspect(version)}"
+            "invalid uuid version, expected one of 1, 3, 4, 5, 6, or 7; got #{inspect(version)}"
       end
 
       namespace = Keyword.get(opts, :namespace)
@@ -989,6 +1030,9 @@ defmodule Uniq.UUID do
 
         6 ->
           uuid6(format)
+
+        7 ->
+          uuid7(format)
 
         v when v in [3, 5] ->
           # 64 bits of entropy should be more than sufficient, since the total entropy

@@ -10,7 +10,7 @@ be found on Hex as `:uniq`.
 ## Features
 
 * Follows the RFC 4122 specification, i.e. supports UUID versions 1, 3, 4, and 5 as described in the RFC
-* Supports UUIDv6, which is described in a proposed extension for RFC 4122, and improves upon desirable traits 
+* Supports UUIDv6 and UUIDv7, which are described in a proposed extension for RFC 4122, and improve upon desirable traits 
 of both UUIDv1 and UUIDv4 to provide the best of both, while removing their downsides.  See 
 [here](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format) for more information on how it does so.
 * Supports formatting UUIDs as canonical strings (e.g. `6ba7b810-9dad-11d1-80b4-00c04fd430c8`, with or without the dashes),
