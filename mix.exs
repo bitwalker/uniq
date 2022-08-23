@@ -103,7 +103,7 @@ defmodule Uniq.MixProject do
     [
       files: ["lib", "mix.exs", "README.md", "LICENSE.md"],
       maintainers: ["Paul Schoenfelder"],
-      licenses: ["Apache 2.0"],
+      licenses: ["Apache-2.0"],
       links: %{
         GitHub: "https://github.com/bitwalker/uniq"
       }
