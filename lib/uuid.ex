@@ -948,7 +948,9 @@ defmodule Uniq.UUID do
 
   ## Ecto
 
-  if Code.ensure_loaded?(Ecto.ParameterizedType) do
+  import Uniq.Macros, only: [defextension: 2]
+
+  defextension Ecto.ParameterizedType do
     use Ecto.ParameterizedType
 
     @doc false
