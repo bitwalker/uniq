@@ -4,8 +4,7 @@ defmodule Uniq.UUID do
 
   See the [README](README.md) for general usage information.
   """
-  use Bitwise, skip_operators: true
-
+  import Bitwise, except: [~~~: 1, &&&: 2, |||: 2, ^^^: 2, <<<: 2, >>>: 2]
   import Kernel, except: [to_string: 1]
 
   defstruct [:format, :version, :variant, :time, :seq, :node, :bytes]
