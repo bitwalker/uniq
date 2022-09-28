@@ -19,6 +19,7 @@ defmodule Uniq.MixProject do
 
   # Ensure we're on OTP 21.2+
   with {:ok, otp_version} <- otp_version do
+    @otp_version otp_version
     Application.put_env(:uniq, :otp_version, otp_version, persistent: true)
 
     unless Version.match?(otp_version, ">= 21.2.0", allow_pre: true) do
@@ -29,7 +30,7 @@ defmodule Uniq.MixProject do
   def project do
     [
       app: :uniq,
-      version: "0.5.2",
+      version: "0.5.3",
       elixir: "~> 1.11",
       description: description(),
       package: package(),
@@ -63,6 +64,7 @@ defmodule Uniq.MixProject do
   def application do
     [
       mod: {Uniq.App, []},
+      env: [otp_version: @otp_version],
       extra_applications: [:crypto]
     ]
   end
