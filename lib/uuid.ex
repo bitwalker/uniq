@@ -259,7 +259,7 @@ defmodule Uniq.UUID do
   on random or pseudo-random data, rather than MAC addresses and other potentially sensitive
   information.
   * Unlike version 4, which tends to interact poorly with database indices due to being derived
-  entirely from random or psuedo-random data; version 6 ensures that the most significant bits
+  entirely from random or pseudo-random data; version 6 ensures that the most significant bits
   of the binary encoded form are a 1:1 match with the most significant bits of the timestamp on
   which it was derived. This guarantees that version 6 UUIDs are naturally sortable in the order
   in which they were generated (with some randomness among those which are generated at the same
