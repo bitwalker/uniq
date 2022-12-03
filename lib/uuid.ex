@@ -572,7 +572,7 @@ defmodule Uniq.UUID do
        }}
     else
       _ ->
-        {:error, {:invalid_format, :v6}}
+        {:error, {:invalid_format, :v7}}
     end
   end
 
