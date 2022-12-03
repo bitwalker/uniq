@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        otp: ['24.3', '25.0']
-        elixir: ['1.12.3', '1.13.4']
+        otp: ['24.3', '25.1']
+        elixir: ['1.12.3', '1.13.4', '1.14']
         exclude:
-        - otp: '25.0'
+        - otp: '25.1'
           elixir: '1.12.3'
     steps:
       - uses: actions/checkout@v2
