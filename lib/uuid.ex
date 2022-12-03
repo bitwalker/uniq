@@ -4,7 +4,7 @@ defmodule Uniq.UUID do
 
   See the [README](README.md) for general usage information.
   """
-  import Bitwise, except: [~~~: 1, &&&: 2, |||: 2, ^^^: 2, <<<: 2, >>>: 2]
+  import Bitwise, except: ["~~~": 1, &&&: 2, |||: 2, "^^^": 2, <<<: 2, >>>: 2]
   import Kernel, except: [to_string: 1]
 
   defstruct [:format, :version, :variant, :time, :seq, :node, :bytes]
@@ -959,6 +959,7 @@ defmodule Uniq.UUID do
       field = Keyword.fetch!(opts, :field)
       format = Keyword.get(opts, :format, :default)
       dump = Keyword.get(opts, :dump, :raw)
+      type = Keyword.get(opts, :type)
 
       unless format in @formats do
         raise ArgumentError,
@@ -1008,6 +1009,7 @@ defmodule Uniq.UUID do
         field: field,
         format: format,
         dump: dump,
+        type: type,
         version: version,
         namespace: namespace
       }
@@ -1015,8 +1017,9 @@ defmodule Uniq.UUID do
 
     @doc false
     @impl Ecto.ParameterizedType
-    def type(%{dump: :raw}), do: :binary
-    def type(_), do: :string
+    def type(%{type: nil, dump: :raw}), do: :binary
+    def type(%{type: nil}), do: :string
+    def type(%{type: t}), do: t
 
     # This is provided as a helper for autogenerating version 3 or 5 uuids
     @doc false
