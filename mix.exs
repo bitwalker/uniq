@@ -1,37 +1,11 @@
 defmodule Uniq.MixProject do
   use Mix.Project
 
-  # Obtain a semver version for the current OTP release
-  otp_version =
-    case String.split(to_string(:erlang.system_info(:otp_release)), ".", trim: true) do
-      [maj] ->
-        Version.parse("#{maj}.0.0")
-
-      [maj, min] ->
-        Version.parse("#{maj}.#{min}.0")
-
-      [maj, min, patch] ->
-        Version.parse("#{maj}.#{min}.#{patch}")
-
-      [maj, min, patch | _] ->
-        Version.parse("#{maj}.#{min}.#{patch}")
-    end
-
-  # Ensure we're on OTP 21.2+
-  with {:ok, otp_version} <- otp_version do
-    @otp_version otp_version
-    Application.put_env(:uniq, :otp_version, otp_version, persistent: true)
-
-    unless Version.match?(otp_version, ">= 21.2.0", allow_pre: true) do
-      Mix.raise(":uniq requires OTP 21.2 or later, but you are running #{otp_version}")
-    end
-  end
-
   def project do
     [
       app: :uniq,
       version: "0.5.4",
-      elixir: "~> 1.11",
+      elixir: "~> 1.13",
       description: description(),
       package: package(),
       start_permanent: Mix.env() == :prod,
@@ -64,7 +38,6 @@ defmodule Uniq.MixProject do
   def application do
     [
       mod: {Uniq.App, []},
-      env: [otp_version: @otp_version],
       extra_applications: [:crypto]
     ]
   end

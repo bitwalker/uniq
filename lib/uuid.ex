@@ -875,17 +875,15 @@ defmodule Uniq.UUID do
         message: "expected a valid namespace atom (:dns, :url, :oid, :x500), or a UUID string"
       )
 
-  otp_version = Application.compile_env!(:uniq, :otp_version)
+  import Uniq.Macros, only: [defextension: 2, defshim: 3]
 
   @compile {:inline, [encode_hex: 1, decode_hex: 1]}
 
-  if Version.match?(otp_version, ">= 24.0.0", allow_pre: true) do
-    defp encode_hex(bin), do: :binary.encode_hex(bin)
-
-    defp decode_hex(bin), do: :binary.decode_hex(bin)
-  else
+  defshim encode_hex(bin), to: :binary do
     defp encode_hex(bin), do: IO.iodata_to_binary(for <<bs::4 <- bin>>, do: e(bs))
+  end
 
+  defshim decode_hex(bin), to: :binary do
     defp decode_hex(
            <<a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4, e1,
              e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12>>
@@ -946,8 +944,6 @@ defmodule Uniq.UUID do
   defp e(15), do: ?f
 
   ## Ecto
-
-  import Uniq.Macros, only: [defextension: 2]
 
   defextension Ecto.ParameterizedType do
     use Ecto.ParameterizedType
