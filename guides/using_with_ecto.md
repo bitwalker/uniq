@@ -67,3 +67,9 @@ defmodule MyApp.Comment do
   end
 end
 ```
+
+For many_to_many association you should add **type: :uuid**:
+
+```elixir
+@primary_key {:id, Uniq.UUID, version: 7, autogenerate: true, type: :uuid}
+```
