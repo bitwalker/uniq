@@ -66,8 +66,8 @@ defmodule Uniq.UUID do
   for the first network interface returned by `:inet.getifaddrs/0` that is up, broadcastable,
   and has a hardware address, otherwise falling back to cryptographically strong random bytes.
   """
-  @spec uuid1() :: t
-  @spec uuid1(format) :: t
+  @spec uuid1() :: formatted
+  @spec uuid1(format) :: formatted
   def uuid1(format \\ :default) do
     {time, clock} = Uniq.Generator.next()
 
@@ -80,7 +80,7 @@ defmodule Uniq.UUID do
 
   See `uuid/1` for details.
   """
-  @spec uuid1(clock_seq :: non_neg_integer, node :: <<_::48>>, format) :: t
+  @spec uuid1(clock_seq :: non_neg_integer, node :: <<_::48>>, format) :: formatted
   def uuid1(clock_seq, <<node::bits(48)>>, format \\ :default)
       when is_integer(clock_seq) and format in @formats do
     {time, _} = Uniq.Generator.next()
@@ -151,8 +151,8 @@ defmodule Uniq.UUID do
   should be obvious, but since the other schemes are _not_ sensitive in this way, it is worth
   calling out.
   """
-  @spec uuid3(namespace, name :: binary) :: t
-  @spec uuid3(namespace, name :: binary, format) :: t
+  @spec uuid3(namespace, name :: binary) :: formatted
+  @spec uuid3(namespace, name :: binary, format) :: formatted
   def uuid3(namespace, name, format \\ :default)
       when (namespace in @namespaces or is_binary(namespace)) and is_binary(name) and
              format in @formats do
@@ -181,8 +181,8 @@ defmodule Uniq.UUID do
   to that recommendation is if you need to pass them through a system that inspects the UUID
   encoding itself and doesn't have preliminary support for version 6.
   """
-  @spec uuid4() :: t
-  @spec uuid4(format) :: t
+  @spec uuid4() :: formatted
+  @spec uuid4(format) :: formatted
   def uuid4(format \\ :default) when format in @formats do
     <<tlo_mid::48, _::4, thi::12, _::2, rest::62>> = :crypto.strong_rand_bytes(16)
 
@@ -238,8 +238,8 @@ defmodule Uniq.UUID do
   should be obvious, but since the other schemes are _not_ sensitive in this way, it is worth
   calling out.
   """
-  @spec uuid5(namespace, name :: binary) :: t
-  @spec uuid5(namespace, name :: binary, format) :: t
+  @spec uuid5(namespace, name :: binary) :: formatted
+  @spec uuid5(namespace, name :: binary, format) :: formatted
   def uuid5(namespace, name, format \\ :default)
       when (namespace in @namespaces or is_binary(namespace)) and is_binary(name) and
              format in @formats do
@@ -272,8 +272,8 @@ defmodule Uniq.UUID do
 
   Systems that do not involve legacy UUIDv1 SHOULD consider using UUIDv7 instead.
   """
-  @spec uuid6() :: t
-  @spec uuid6(format) :: t
+  @spec uuid6() :: formatted
+  @spec uuid6(format) :: formatted
   def uuid6(format \\ :default) when format in @formats do
     {time, clock} = Uniq.Generator.next()
     node = :crypto.strong_rand_bytes(6)
@@ -303,8 +303,8 @@ defmodule Uniq.UUID do
 
   Implementations SHOULD utilize UUID version 7 over UUID version 1 and 6 if possible.
   """
-  @spec uuid7() :: t
-  @spec uuid7(format) :: t
+  @spec uuid7() :: formatted
+  @spec uuid7(format) :: formatted
   def uuid7(format \\ :default) when format in @formats do
     time = System.system_time(:millisecond)
     <<rand_a::12, _::6, rand_b::62>> = :crypto.strong_rand_bytes(10)
