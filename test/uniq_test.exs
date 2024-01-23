@@ -138,6 +138,10 @@ defmodule Uniq.Test do
     test "can format version 7", %{uuids: uuids} do
       assert format(7, uuids)
     end
+
+    test "can format version 8", %{uuids: uuids} do
+      assert format(8, uuids)
+    end
   end
 
   describe "generating" do
