@@ -17,7 +17,8 @@ defmodule Uniq.Test do
       # generated in the :dns namespace, name "test"
       5 => "4be0643f-1d98-573b-97cd-ca98a65347dd",
       6 => "1e7126af-f130-6780-adb4-8bbe7368fc2f",
-      7 => "0182b66c-29e7-7ae8-b60e-4b669fe07c77"
+      7 => "0182b66c-29e7-7ae8-b60e-4b669fe07c77",
+      8 => "34e3992d-8a73-83de-9486-0f622063b665"
     }
 
     hex =
@@ -66,6 +67,10 @@ defmodule Uniq.Test do
 
     test "can parse version 7", %{uuids: uuids} do
       assert parse(7, uuids)
+    end
+
+    test "can parse version 8", %{uuids: uuids} do
+      assert parse(8, uuids)
     end
 
     property "can parse any 128-bit binary with valid version/variant values" do

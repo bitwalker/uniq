@@ -500,7 +500,7 @@ defmodule Uniq.UUID do
   # Parse version
   defp parse_raw(<<_::48, version::uint(4), _::bitstring>> = bin, acc) do
     case version do
-      v when v in [1, 3, 4, 5, 6, 7] ->
+      v when v in [1, 3, 4, 5, 6, 7, 8] ->
         with {:ok, uuid} <- parse_raw(version, bin, acc) do
           {:ok, %__MODULE__{uuid | bytes: bin}}
         end
@@ -564,6 +564,23 @@ defmodule Uniq.UUID do
     end
   end
 
+  # Generic parse proposed version 8 uuids.
+  # We can't validate the meaningful part of a uuid itself, but we can extract version and check variant
+  defp parse_raw(8, <<1::1, 0::1>> = variant, pre_variant, post_variant, acc) do
+    with <<_custom_a::biguint(48), _version::4, _custom_b::12>> <- <<pre_variant::64>>,
+         <<_custom_c::62>> <- post_variant do
+      {:ok,
+       %__MODULE__{
+         acc
+         | version: 8,
+           variant: variant
+       }}
+    else
+      _ ->
+        {:error, {:invalid_format, :v8}}
+    end
+  end
+
   # Parses proposed version 7 uuids
   defp parse_raw(7, <<1::1, 0::1>> = variant, time, rest, acc) do
     with <<time::biguint(48), _version::4, _rand_a::12>> <- <<time::64>>,
@@ -604,7 +621,7 @@ defmodule Uniq.UUID do
 
   defp parse_raw(6, variant, _time, _rest, _acc), do: {:error, {:invalid_variant, variant}}
 
-  # Handles proposed version 7 and 8 uuids
+  # Handles other version uuids
   defp parse_raw(version, _variant, _time, _rest, _acc),
     do: {:error, {:unsupported_version, version}}
 
