@@ -306,10 +306,18 @@ defmodule Uniq.UUID do
   @spec uuid7() :: formatted
   @spec uuid7(format) :: formatted
   def uuid7(format \\ :default) when format in @formats do
-    time = System.system_time(:millisecond)
-    <<rand_a::12, _::6, rand_b::62>> = :crypto.strong_rand_bytes(10)
+    time = System.system_time(:microsecond)
 
-    raw = <<time::biguint(48), 7::4, rand_a::12, @rfc_variant, rand_b::62>>
+    # Replace left-most random bits (rand_a) with increased clock precision.
+    # We could use up to 12 bits, but since using microseconds, we only need
+    # to use 10 bits. The remaining 2, can be rand_a.
+    ms = div(time, 1000)
+    us = rem(time, 1000)
+    extra_time = trunc(us / 1000 * 1024)
+
+    <<rand_a::2, rand_b::62>> = :crypto.strong_rand_bytes(8)
+
+    raw = <<ms::biguint(48), 7::4, extra_time::biguint(10), rand_a::2, @rfc_variant, rand_b::62>>
 
     format(raw, format)
   end
