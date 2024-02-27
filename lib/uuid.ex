@@ -824,13 +824,17 @@ defmodule Uniq.UUID do
          {_if, info} <- Enum.find(interfaces, candidate_interface?) do
       IO.iodata_to_binary(info[:hwaddr])
     else
-      _ ->
-        # In lieu of a MAC address, we can generate an equivalent number of random bytes
-        <<head::7, _::1, tail::46>> = :crypto.strong_rand_bytes(6)
-        # Ensure the multicast bit is set, as per RFC 4122
-        <<head::7, 1::1, tail::46>>
+      _ -> random_mac_address()
     end
   end
+
+  def random_mac_address do
+    # In lieu of a MAC address, we can generate an equivalent number of random bytes
+    <<head::7, _::1, tail::40>> = :crypto.strong_rand_bytes(6)
+    # Ensure the multicast bit is set, as per RFC 4122
+    <<head::7, 1::1, tail::40>>
+  end
+
 
   defp hash(:md5, data), do: :crypto.hash(:md5, data)
   defp hash(:sha, data), do: :binary.part(:crypto.hash(:sha, data), 0, 16)

@@ -144,6 +144,16 @@ defmodule Uniq.Test do
       assert {:ok, %UUID{format: :raw, version: 1}} = UUID.parse(raw)
     end
 
+    test "can generate version 1 with random mac address" do
+      {_, clock} = Uniq.Generator.next()
+      node = UUID.random_mac_address()
+      default = UUID.uuid1(clock, node, :default)
+      raw = UUID.uuid1(clock, node, :raw)
+
+      assert {:ok, %UUID{format: :default, version: 1}} = UUID.parse(default)
+      assert {:ok, %UUID{format: :raw, version: 1}} = UUID.parse(raw)
+    end
+
     test "can generate version 3", %{uuids: uuids} do
       namespace = <<0::128>>
       name = "test"
