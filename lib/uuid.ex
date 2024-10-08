@@ -826,9 +826,9 @@ defmodule Uniq.UUID do
     else
       _ ->
         # In lieu of a MAC address, we can generate an equivalent number of random bytes
-        <<head::7, _::1, tail::46>> = :crypto.strong_rand_bytes(6)
+        <<head::7, _::1, tail::40>> = :crypto.strong_rand_bytes(6)
         # Ensure the multicast bit is set, as per RFC 4122
-        <<head::7, 1::1, tail::46>>
+        <<head::7, 1::1, tail::40>>
     end
   end
 
