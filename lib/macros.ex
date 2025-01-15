@@ -19,7 +19,7 @@ defmodule Uniq.Macros do
   @builtins [
     binary: [
       encode_hex: hex_encoding,
-      decode_hex: hex_encoding,
+      decode_hex: hex_encoding
     ]
   ]
 
@@ -36,7 +36,9 @@ defmodule Uniq.Macros do
   defmacro defshim({_, meta, _} = function, [to: module], do: fallback) do
     {name, args} =
       case function do
-        {:when, _, _} -> raise ArgumentError, "guards are not allowed in defshim/3"
+        {:when, _, _} ->
+          raise ArgumentError, "guards are not allowed in defshim/3"
+
         _ ->
           case Macro.decompose_call(function) do
             {_, _} = pair -> pair
