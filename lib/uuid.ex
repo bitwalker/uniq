@@ -534,34 +534,34 @@ defmodule Uniq.UUID do
     variant_size = bit_size(variant)
     variant = Macro.escape(variant)
 
-        # Parses RFC 4122, version 1-5 uuids
-        defp parse_raw(version, unquote(variant), time, rest, acc) when version < 6 do
-          variant_size = unquote(variant_size)
-          clock_hi_size = 8 - variant_size
-          clock_size = 8 + clock_hi_size
+    # Parses RFC 4122, version 1-5 uuids
+    defp parse_raw(version, unquote(variant), time, rest, acc) when version < 6 do
+      variant_size = unquote(variant_size)
+      clock_hi_size = 8 - variant_size
+      clock_size = 8 + clock_hi_size
 
-          with <<time_lo::bits(32), time_mid::bits(16), _version::4, time_hi::bits(12)>> <-
-                 <<time::64>>,
-               <<timestamp::uint(60)>> <-
-                 <<time_hi::bits(12), time_mid::bits(16), time_lo::bits(32)>>,
-               <<clock_hi::bits(clock_hi_size), clock_lo::bits(8), node::bits(48)>> <-
-                 rest,
-               <<clock::uint(clock_size)>> <-
-                 <<clock_hi::bits(clock_hi_size), clock_lo::bits(8)>> do
-            {:ok,
-             %__MODULE__{
-               acc
-               | version: version,
-                 variant: unquote(variant),
-                 time: timestamp,
-                 seq: clock,
-                 node: node
-             }}
-          else
-            other ->
-              {:error, {:invalid_format, other, variant_size, clock_hi_size, clock_size}}
-          end
-        end
+      with <<time_lo::bits(32), time_mid::bits(16), _version::4, time_hi::bits(12)>> <-
+             <<time::64>>,
+           <<timestamp::uint(60)>> <-
+             <<time_hi::bits(12), time_mid::bits(16), time_lo::bits(32)>>,
+           <<clock_hi::bits(clock_hi_size), clock_lo::bits(8), node::bits(48)>> <-
+             rest,
+           <<clock::uint(clock_size)>> <-
+             <<clock_hi::bits(clock_hi_size), clock_lo::bits(8)>> do
+        {:ok,
+         %__MODULE__{
+           acc
+           | version: version,
+             variant: unquote(variant),
+             time: timestamp,
+             seq: clock,
+             node: node
+         }}
+      else
+        other ->
+          {:error, {:invalid_format, other, variant_size, clock_hi_size, clock_size}}
+      end
+    end
   end
 
   # Parses proposed version 7 uuids
