@@ -66,7 +66,7 @@ defmodule Uniq.MixProject do
       {:ecto, "~> 3.0", optional: true},
       {:ex_doc, "> 0.0.0", only: [:docs], runtime: false},
       {:elixir_uuid, "> 0.0.0", only: [:bench]},
-      {:stream_data, "~> 0.5", only: [:test]}
+      {:stream_data, "~> 1.0", only: [:test]}
     ]
   end
 
