@@ -21,20 +21,16 @@ defmodule Uniq.Test do
     }
 
     hex =
-      default
-      |> Enum.into(%{}, fn {k, v} -> {k, String.replace(v, "-", "")} end)
+      Enum.into(default, %{}, fn {k, v} -> {k, String.replace(v, "-", "")} end)
 
     raw =
-      hex
-      |> Enum.into(%{}, fn {k, v} -> {k, Base.decode16!(v, case: :lower)} end)
+      Enum.into(hex, %{}, fn {k, v} -> {k, Base.decode16!(v, case: :lower)} end)
 
     urn =
-      default
-      |> Enum.into(%{}, fn {k, v} -> {k, "urn:uuid:" <> v} end)
+      Enum.into(default, %{}, fn {k, v} -> {k, "urn:uuid:" <> v} end)
 
     slug =
-      raw
-      |> Enum.into(%{}, fn {k, v} -> {k, Base.url_encode64(v, padding: false)} end)
+      Enum.into(raw, %{}, fn {k, v} -> {k, Base.url_encode64(v, padding: false)} end)
 
     %{uuids: %{raw: raw, default: default, hex: hex, urn: urn, slug: slug}}
   end
@@ -225,12 +221,12 @@ defmodule Uniq.Test do
 
     assert ^default = UUID.to_string(raw)
     assert ^raw = UUID.to_string(raw, :raw)
-    assert ^hex = UUID.to_string(raw, :hex) |> String.downcase()
+    assert ^hex = raw |> UUID.to_string(:hex) |> String.downcase()
     assert ^urn = UUID.to_string(raw, :urn)
     assert ^slug = UUID.to_string(raw, :slug)
 
     assert ^raw = UUID.to_string(default, :raw)
-    assert ^default = UUID.to_string(slug, :default) |> String.downcase()
+    assert ^default = slug |> UUID.to_string(:default) |> String.downcase()
 
     true
   end

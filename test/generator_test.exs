@@ -20,10 +20,7 @@ defmodule Uniq.Generator.Test do
   defp repeat_on_generating(parent, id, start) do
     result = Uniq.Generator.next()
 
-    if !:ets.insert_new(:result, {result, id}) do
-      [{prev, prev_id}] = :ets.lookup(:result, result)
-      send(parent, {:duplicate, id, prev, prev_id})
-    else
+    if :ets.insert_new(:result, {result, id}) do
       t = System.monotonic_time(:millisecond)
 
       if t - start > 15_000 do
@@ -31,6 +28,9 @@ defmodule Uniq.Generator.Test do
       else
         repeat_on_generating(parent, id, start)
       end
+    else
+      [{prev, prev_id}] = :ets.lookup(:result, result)
+      send(parent, {:duplicate, id, prev, prev_id})
     end
   end
 

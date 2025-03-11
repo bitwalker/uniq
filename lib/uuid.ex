@@ -332,9 +332,10 @@ defmodule Uniq.UUID do
   def info!(bin, style \\ :struct)
 
   def info!(bin, style) when is_binary(bin) do
-    with {:ok, info} <- info(bin, style) do
-      info
-    else
+    case info(bin, style) do
+      {:ok, info} ->
+        info
+
       {:error, reason} ->
         raise ArgumentError, message: "invalid uuid: #{inspect(reason)}"
     end
@@ -478,18 +479,20 @@ defmodule Uniq.UUID do
   end
 
   def parse(<<a::bytes(8), ?-, b::bytes(4), ?-, c::bytes(4), ?-, d::bytes(4), ?-, e::bytes(12)>>) do
-    with {:ok, bin} <- Base.decode16(a <> b <> c <> d <> e, case: :mixed) do
-      parse_raw(bin, %__MODULE__{format: :default})
-    else
+    case Base.decode16(a <> b <> c <> d <> e, case: :mixed) do
+      {:ok, bin} ->
+        parse_raw(bin, %__MODULE__{format: :default})
+
       :error ->
         {:error, {:invalid_format, :default}}
     end
   end
 
   def parse(<<uuid::bytes(22)>>) do
-    with {:ok, value} <- Base.url_decode64(uuid <> "==") do
-      parse_raw(value, %__MODULE__{format: :slug})
-    else
+    case Base.url_decode64(uuid <> "==") do
+      {:ok, value} ->
+        parse_raw(value, %__MODULE__{format: :slug})
+
       _ ->
         {:error, {:invalid_format, :slug}}
     end
@@ -674,9 +677,10 @@ defmodule Uniq.UUID do
   end
 
   def string_to_binary!(<<slug::bytes(22)>>) do
-    with {:ok, value} <- Base.url_decode64(slug <> "==") do
-      value
-    else
+    case Base.url_decode64(slug <> "==") do
+      {:ok, value} ->
+        value
+
       _ ->
         raise ArgumentError, message: "invalid uuid string"
     end
@@ -844,9 +848,10 @@ defmodule Uniq.UUID do
   defp namespace_id(<<_::128>> = ns), do: ns
 
   defp namespace_id(<<ns::bytes(32)>>) do
-    with {:ok, raw} <- Base.decode16(ns, case: :mixed) do
-      raw
-    else
+    case Base.decode16(ns, case: :mixed) do
+      {:ok, raw} ->
+        raw
+
       _ ->
         invalid_namespace!()
     end
@@ -855,18 +860,20 @@ defmodule Uniq.UUID do
   defp namespace_id(
          <<a::bytes(8), ?-, b::bytes(4), ?-, c::bytes(4), ?-, d::bytes(4), ?-, e::bytes(12)>>
        ) do
-    with {:ok, raw} <- Base.decode16(a <> b <> c <> d <> e, case: :mixed) do
-      raw
-    else
+    case Base.decode16(a <> b <> c <> d <> e, case: :mixed) do
+      {:ok, raw} ->
+        raw
+
       _ ->
         invalid_namespace!()
     end
   end
 
   defp namespace_id(<<ns::bytes(22)>>) do
-    with {:ok, raw} <- Base.url_decode64(ns <> "==") do
-      raw
-    else
+    case Base.url_decode64(ns <> "==") do
+      {:ok, raw} ->
+        raw
+
       _ ->
         invalid_namespace!()
     end

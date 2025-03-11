@@ -1,4 +1,13 @@
 defmodule Uniq.Macros do
+  @moduledoc """
+  Provides macros for conditional compilation, allowing code to be included or
+  excluded based on the OTP version and the presence of specific modules.
+
+  This module defines macros that are used to conditionally compile code based on
+  the OTP version and the presence of specific modules. It provides a way to
+  write code that can adapt to different environments and configurations.
+  """
+
   otp_version =
     case String.split(to_string(:erlang.system_info(:otp_release)), ".", trim: true) do
       [maj] ->

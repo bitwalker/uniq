@@ -1,4 +1,14 @@
 defmodule Uniq.Test.Generators do
+  @moduledoc """
+  Provides property-based generators for `Uniq.UUID` values.
+
+  This module defines generators for creating both valid and invalid
+  UUIDs for use in property-based testing with `ExUnitProperties`.
+
+  The generators cover different UUID versions, variants, and formats,
+  allowing for comprehensive testing of the `Uniq.UUID` module.
+  """
+
   import ExUnitProperties
   import StreamData
 
@@ -19,13 +29,13 @@ defmodule Uniq.Test.Generators do
   def valid_uuid(format \\ :raw) when format in @formats do
     gen all(
           {version, variant} <-
-            bind(member_of(@variants), fn variant ->
-              # Version 6 requires the use of the correct variant to be valid
-              if variant in @reserved_variants do
+            bind(member_of(@variants), fn
+              variant when variant in @reserved_variants ->
+                # Version 6 requires the use of the correct variant to be valid
                 bind(member_of(@rfc_versions), fn version -> constant({version, variant}) end)
-              else
+
+              variant ->
                 bind(member_of(@versions), fn version -> constant({version, variant}) end)
-              end
             end),
           bits <- bitstring(length: 128)
         ) do
@@ -34,9 +44,11 @@ defmodule Uniq.Test.Generators do
       <<start::48, _::4, mid::12, _::size(variant_size), rest::size(rest_size)>> = bits
 
       uuid =
-        <<start::48, version::4, mid::12, variant::bitstring-size(variant_size),
-          rest::size(rest_size)>>
-        |> UUID.format(format)
+        UUID.format(
+          <<start::48, version::4, mid::12, variant::bitstring-size(variant_size),
+            rest::size(rest_size)>>,
+          format
+        )
 
       {version, variant, uuid}
     end
@@ -45,33 +57,22 @@ defmodule Uniq.Test.Generators do
   def invalid_uuid(format \\ :raw) when format in @formats do
     gen all(
           bits <-
-            bind(bitstring(length: 128), fn <<start::48, v::4, mid::12, var::bitstring-size(3),
-                                              rest::61>> = bits ->
-              case v do
-                v when v in [6, 7] ->
-                  # Version 6 specifically only allows a single variant to be considered valid
-                  case var do
-                    <<@rfc_variant, _::1>> ->
-                      bind(member_of(@reserved_variants_uniform), fn variant ->
-                        constant(
-                          <<start::48, v::4, mid::12, variant::bitstring-size(3), rest::61>>
-                        )
-                      end)
+            bind(bitstring(length: 128), fn
+              <<start::48, v::4, mid::12, @rfc_variant, _::1, rest::61>> when v in [6, 7] ->
+                bind(member_of(@reserved_variants_uniform), fn variant ->
+                  constant(<<start::48, v::4, mid::12, variant::bitstring-size(3), rest::61>>)
+                end)
 
-                    _ ->
-                      constant(bits)
-                  end
+              <<start::48, v::4, mid::12, var::bitstring-size(3), rest::61>>
+              when v in @rfc_versions ->
+                # Any 3-bit pattern is technically valid as a variant in a UUID per the RFC, so we instead generate
+                # a known-invalid version.
+                bind(integer(8..15), fn version ->
+                  constant(<<start::48, version::4, mid::12, var::bitstring-size(3), rest::61>>)
+                end)
 
-                v when v in @rfc_versions ->
-                  # Any 3-bit pattern is technically valid as a variant in a UUID per the RFC, so we instead generate
-                  # a known-invalid version.
-                  bind(integer(8..15), fn version ->
-                    constant(<<start::48, version::4, mid::12, var::bitstring-size(3), rest::61>>)
-                  end)
-
-                _ ->
-                  constant(bits)
-              end
+              bits ->
+                constant(bits)
             end)
         ) do
       <<_::48, version::4, _::12, variant::bitstring-size(3), _::61>> = bits
