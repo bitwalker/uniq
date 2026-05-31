@@ -12,11 +12,6 @@ defmodule Uniq.MixProject do
       deps: deps(),
       aliases: aliases(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      preferred_cli_env: [
-        bench: :bench,
-        docs: :docs,
-        "hex.publish": :docs
-      ],
       name: "Uniq",
       source_url: "https://github.com/bitwalker/uniq",
       homepage_url: "http://github.com/bitwalker/uniq",
@@ -31,6 +26,14 @@ defmodule Uniq.MixProject do
           {:"LICENSE.md", [title: "License"]}
         ]
       ]
+    ]
+  end
+
+  def cli do
+    [
+      bench: :bench,
+      docs: :docs,
+      "hex.publish": :docs
     ]
   end
 

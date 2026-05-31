@@ -544,9 +544,9 @@ defmodule Uniq.UUID do
              <<time::64>>,
            <<timestamp::uint(60)>> <-
              <<time_hi::bits(12), time_mid::bits(16), time_lo::bits(32)>>,
-           <<clock_hi::bits(clock_hi_size), clock_lo::bits(8), node::bits(48)>> <-
+           <<clock_hi::bits(^clock_hi_size), clock_lo::bits(8), node::bits(48)>> <-
              rest,
-           <<clock::uint(clock_size)>> <-
+           <<clock::uint(^clock_size)>> <-
              <<clock_hi::bits(clock_hi_size), clock_lo::bits(8)>> do
         {:ok,
          %{
