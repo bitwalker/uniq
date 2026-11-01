@@ -27,15 +27,12 @@ defmodule Uniq.Test.Generators do
                 bind(member_of(@versions), fn version -> constant({version, variant}) end)
               end
             end),
-          bits <- bitstring(length: 128)
+          bits <- bitstring(length: 128 - bit_size(variant))
         ) do
-      variant_size = bit_size(variant)
-      rest_size = 64 - variant_size
-      <<start::48, _::4, mid::12, _::size(variant_size), rest::size(rest_size)>> = bits
+      <<start::48, _::4, mid::12, rest::bitstring>> = bits
 
       uuid =
-        <<start::48, version::4, mid::12, variant::bitstring-size(variant_size),
-          rest::size(rest_size)>>
+        <<start::48, version::4, mid::12, variant::bitstring, rest::bitstring>>
         |> UUID.format(format)
 
       {version, variant, uuid}

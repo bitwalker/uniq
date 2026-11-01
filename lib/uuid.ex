@@ -440,7 +440,7 @@ defmodule Uniq.UUID do
 
   ## Examples
 
-      iex> {:ok, uuid} = Uniq.UUID.parse("f81d4fae-7dec-11d0-a765-00a0c91e6bf6")
+      iex> {:ok, %Uniq.UUID{} = uuid} = Uniq.UUID.parse("f81d4fae-7dec-11d0-a765-00a0c91e6bf6")
       {:ok, %Uniq.UUID{
         bytes: <<248, 29, 79, 174, 125, 236, 17, 208, 167, 101, 0, 160, 201, 30, 107, 246>>,
         format: :default,
@@ -532,22 +532,20 @@ defmodule Uniq.UUID do
 
   for variant <- [@reserved_ncs, @rfc_variant, @reserved_ms, @reserved_future] do
     variant_size = bit_size(variant)
+    clock_hi_size = 8 - variant_size
+    clock_size = 8 + clock_hi_size
     variant = Macro.escape(variant)
 
     # Parses RFC 4122, version 1-5 uuids
     defp parse_raw(version, unquote(variant), time, rest, %__MODULE__{} = acc) when version < 6 do
-      variant_size = unquote(variant_size)
-      clock_hi_size = 8 - variant_size
-      clock_size = 8 + clock_hi_size
-
       with <<time_lo::bits(32), time_mid::bits(16), _version::4, time_hi::bits(12)>> <-
              <<time::64>>,
            <<timestamp::uint(60)>> <-
              <<time_hi::bits(12), time_mid::bits(16), time_lo::bits(32)>>,
-           <<clock_hi::bits(clock_hi_size), clock_lo::bits(8), node::bits(48)>> <-
+           <<clock_hi::bits(unquote(clock_hi_size)), clock_lo::bits(8), node::bits(48)>> <-
              rest,
-           <<clock::uint(clock_size)>> <-
-             <<clock_hi::bits(clock_hi_size), clock_lo::bits(8)>> do
+           <<clock::uint(unquote(clock_size))>> <-
+             <<clock_hi::bits(unquote(clock_hi_size)), clock_lo::bits(8)>> do
         {:ok,
          %{
            acc
@@ -559,7 +557,9 @@ defmodule Uniq.UUID do
          }}
       else
         other ->
-          {:error, {:invalid_format, other, variant_size, clock_hi_size, clock_size}}
+          {:error,
+           {:invalid_format, other, unquote(variant_size), unquote(clock_hi_size),
+            unquote(clock_size)}}
       end
     end
   end

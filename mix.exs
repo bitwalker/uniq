@@ -12,11 +12,6 @@ defmodule Uniq.MixProject do
       deps: deps(),
       aliases: aliases(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      preferred_cli_env: [
-        bench: :bench,
-        docs: :docs,
-        "hex.publish": :docs
-      ],
       name: "Uniq",
       source_url: "https://github.com/bitwalker/uniq",
       homepage_url: "http://github.com/bitwalker/uniq",
@@ -31,7 +26,20 @@ defmodule Uniq.MixProject do
           {:"LICENSE.md", [title: "License"]}
         ]
       ]
-    ]
+    ] ++ legacy_cli_config()
+  end
+
+  def cli do
+    [preferred_envs: [bench: :bench, docs: :docs, "hex.publish": :docs]]
+  end
+
+  # Older Mix releases read task environments from project/0.
+  defp legacy_cli_config do
+    if Version.compare(System.version(), "1.20.0-dev") == :lt do
+      [preferred_cli_env: cli()[:preferred_envs]]
+    else
+      []
+    end
   end
 
   # Run "mix help compile.app" to learn about applications.
@@ -66,7 +74,7 @@ defmodule Uniq.MixProject do
       {:ecto, "~> 3.0", optional: true},
       {:ex_doc, "> 0.0.0", only: [:docs], runtime: false},
       {:elixir_uuid, "> 0.0.0", only: [:bench]},
-      {:stream_data, "~> 0.5", only: [:test]}
+      {:stream_data, "~> 1.3.0", only: [:test]}
     ]
   end
 
