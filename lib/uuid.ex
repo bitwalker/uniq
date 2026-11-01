@@ -663,6 +663,8 @@ defmodule Uniq.UUID do
 
   def string_to_binary!(<<_::128>> = uuid), do: uuid
 
+  def string_to_binary!("urn:uuid:" <> <<uuid::bytes(36)>>), do: string_to_binary!(uuid)
+
   def string_to_binary!(<<hex::bytes(32)>>) do
     decode_hex(hex)
   end
