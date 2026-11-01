@@ -1,7 +1,7 @@
 defmodule Uniq.ScopedUUID do
   import Uniq.Macros, only: [defextension: 2]
 
-  @doc """
+  @moduledoc """
   Generates and validates UUIDs in Ecto schemas which are scoped using a prefix.
 
   With scoped UUIDs, applications can differentiate between UUIDs that are generated
@@ -11,7 +11,7 @@ defmodule Uniq.ScopedUUID do
   It also makes it easy to determine the intended use of an ID in error logs,
   in client code, etc.
 
-  The scope is included in the Ecto field defintion, and is prepended to the UUID
+  The scope is included in the Ecto field definition, and is prepended to the UUID
   which is separated from the ID itself by an `_`. The UUID itself is rendered
   as a slug making it easy to use outside the application, e.g.: `account_AYilFryMfFqbaBJlH1WLng`.
 
@@ -23,8 +23,8 @@ defmodule Uniq.ScopedUUID do
 
   When defining a ScopedUUID field, the following options are supported:
 
-    * scope: String.t(), required. Can not require underscores.
-    * version: integer, defaults to 7. The version of UUIDs to generate.
+    * scope: String.t(), required. Must not contain underscores.
+    * uuid_version: integer, defaults to 7. The version of UUIDs to generate.
 
   ## Examples
 
@@ -151,33 +151,33 @@ defmodule Uniq.ScopedUUID do
         _ -> Uniq.UUID.equal?(a, b, params.uuid_config)
       end
     end
-  end
 
-  defp scope_for(%{scope: scope}), do: scope
+    defp scope_for(%{scope: scope}), do: scope
 
-  # When dealing with a belongs_to assocation, fetch the scope from
-  # the associations schema module
-  defp scope_for(%{schema: schema, field: field}) do
-    %{related: schema, related_key: field} = schema.__schema__(:association, field)
-    {:parameterized, {__MODULE__, %{scope: scope}}} = schema.__schema__(:type, field)
-    scope
-  end
+    # When dealing with a belongs_to association, fetch the scope from
+    # the association's schema module
+    defp scope_for(%{schema: schema, field: field}) do
+      %{related: schema, related_key: field} = schema.__schema__(:association, field)
+      {:parameterized, {__MODULE__, %{scope: scope}}} = schema.__schema__(:type, field)
+      scope
+    end
 
-  defp add_scope(uuid, params) do
-    scope = scope_for(params)
-    "#{scope}_#{uuid}"
-  end
+    defp add_scope(uuid, params) do
+      scope = scope_for(params)
+      "#{scope}_#{uuid}"
+    end
 
-  defp fake_dumper(_type, value), do: value
+    defp fake_dumper(_type, value), do: value
 
-  defp extract_uuid(scoped_uuid, params) do
-    scope = scope_for(params)
+    defp extract_uuid(scoped_uuid, params) do
+      scope = scope_for(params)
 
-    with <<^scope::binary, ?_, slug::binary>> <- scoped_uuid,
-         {:ok, uuid} <- Uniq.UUID.dump(slug, &fake_dumper/2, params.uuid_config) do
-      {:ok, scope, uuid}
-    else
-      _ -> :error
+      with <<^scope::binary, ?_, slug::binary>> <- scoped_uuid,
+           {:ok, uuid} <- Uniq.UUID.dump(slug, &fake_dumper/2, params.uuid_config) do
+        {:ok, scope, uuid}
+      else
+        _ -> :error
+      end
     end
   end
 end
