@@ -302,6 +302,10 @@ defmodule Uniq.UUID do
   UTC, leap seconds excluded. As well as improved entropy characteristics over versions 1 or 6.
 
   Implementations SHOULD utilize UUID version 7 over UUID version 1 and 6 if possible.
+
+  UUIDs generated in the same millisecond have random trailing bits, so sorting
+  them does not preserve generation order. Clock rollback can also affect their
+  time ordering.
   """
   @spec uuid7() :: formatted
   @spec uuid7(format) :: formatted
@@ -689,47 +693,19 @@ defmodule Uniq.UUID do
   end
 
   @doc """
-  Compares two UUIDs, using their canonical 128-bit integer form, as described in RFC 4122.
+  Compares two UUIDs by their canonical 128-bit value, as described in RFC 4122.
 
   You may provide the UUIDs in either string, binary, or as a `Uniq.UUID` struct.
+  Equivalent representations compare equal. For UUIDv7, comparison orders the
+  encoded value rather than the generation order within a millisecond.
   """
   @spec compare(String.t() | info, String.t() | info) :: :lt | :eq | :gt
   def compare(a, b)
 
-  def compare(%__MODULE__{} = a, %__MODULE__{} = b) do
-    a = to_canonical_integer(a)
-    b = to_canonical_integer(b)
+  def compare(%__MODULE__{bytes: a}, b), do: compare(a, b)
+  def compare(a, %__MODULE__{bytes: b}), do: compare(a, b)
 
-    do_compare(a, b)
-  end
-
-  def compare(%__MODULE__{} = a, <<b::biguint(128)>>) do
-    a = to_canonical_integer(a)
-
-    do_compare(a, b)
-  end
-
-  def compare(%__MODULE__{} = a, b) when is_binary(b) do
-    a = to_canonical_integer(a)
-    b = string_to_binary!(b)
-
-    do_compare(a, b)
-  end
-
-  def compare(<<a::biguint(128)>>, %__MODULE__{} = b) do
-    b = to_canonical_integer(b)
-
-    do_compare(a, b)
-  end
-
-  def compare(a, %__MODULE__{} = b) when is_binary(a) do
-    a = string_to_binary!(a)
-    b = to_canonical_integer(b)
-
-    do_compare(a, b)
-  end
-
-  def compare(<<a::biguint(128)>>, <<b::biguint(128)>>),
+  def compare(<<_::128>> = a, <<_::128>> = b),
     do: do_compare(a, b)
 
   def compare(a, b) when is_binary(a) and is_binary(b) do
@@ -750,10 +726,6 @@ defmodule Uniq.UUID do
       :else ->
         :gt
     end
-  end
-
-  defp to_canonical_integer(%__MODULE__{bytes: <<value::biguint(128)>>}) do
-    value
   end
 
   @doc false
