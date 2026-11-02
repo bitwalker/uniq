@@ -34,7 +34,8 @@ MIX_ENV=test mix deps.get --only test --check-locked
 MIX_ENV=test mix deps.compile
 MIX_ENV=test mix compile --warnings-as-errors
 MIX_ENV=test mix test --warnings-as-errors
-MIX_ENV=docs mix deps.get --only docs --check-locked
+# Fetch every environment so the unused-lock check can traverse the whole graph.
+MIX_ENV=docs mix deps.get --check-locked
 MIX_ENV=docs mix deps.unlock --check-unused
 mix format --check-formatted
 MIX_ENV=docs mix hex.audit

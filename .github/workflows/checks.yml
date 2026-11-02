@@ -89,7 +89,8 @@ jobs:
           RELEASE_TAG: ${{ inputs.release-tag }}
           RELEASE_PRERELEASE: ${{ inputs.release-prerelease }}
         run: elixir .github/scripts/check-release.exs
-      - run: mix deps.get --only docs --check-locked
+      # The unused-lock check needs dependency manifests from every environment.
+      - run: mix deps.get --check-locked
       - run: mix deps.unlock --check-unused
       - run: mix format --check-formatted
       - run: mix hex.audit
