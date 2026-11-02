@@ -2,42 +2,24 @@ name: elixir
 
 on:
   push:
-    branches: main
+    branches: [main, release-next]
   pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - pair:
-              elixir: "1.16"
-              otp: "26"
-          - pair:
-              elixir: "1.18"
-              otp: "27"
-            lint: true
-    steps:
-      - uses: actions/checkout@v4
+  checks:
+    permissions:
+      contents: read
+    uses: $/.github/workflows/checks.yml
 
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{matrix.pair.otp}}
-          elixir-version: ${{matrix.pair.elixir}}
-
-      - name: Install Dependencies
-        run: mix deps.get --only test
-
-      - run: mix format --check-formatted
-        if: ${{ matrix.lint }}
-
-      - run: mix deps.get && mix deps.unlock --check-unused
-        if: ${{ matrix.lint }}
-
-      - run: mix deps.compile
-
-      - run: mix compile --warnings-as-errors
-        if: ${{ matrix.lint }}
-
-      - run: mix test
+  security:
+    permissions:
+      contents: read
+    uses: $/.github/workflows/security.yml

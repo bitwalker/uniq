@@ -1,0 +1,73 @@
+name: GitHub Actions security
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 6 * * 1"
+
+permissions: {}
+
+jobs:
+  actions-lock:
+    name: Actions lockfile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Install checksum-pinned lockfile verifier
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/github/gh-actions-lock/releases/download/v0.4.0/linux-amd64 \
+            --output "${RUNNER_TEMP}/gh-actions-lock"
+          printf '%s  %s\n' \
+            f9da98f2a6e9e0ae77deadf9a2319a8a86bb002b541cc3203b247cc59fb04842 \
+            "${RUNNER_TEMP}/gh-actions-lock" | sha256sum --check --strict
+          chmod +x "${RUNNER_TEMP}/gh-actions-lock"
+      - name: Verify lockfile without modifying it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: '"${RUNNER_TEMP}/gh-actions-lock" --verify'
+
+  actionlint:
+    name: actionlint and ShellCheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 # 1.7.12
+        with:
+          args: -color
+      - name: Check standalone shell scripts
+        run: |
+          docker run --rm --volume "${PWD}:/workdir" --workdir /workdir \
+            --entrypoint shellcheck \
+            rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 \
+            .github/scripts/*.sh
+
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        with:
+          version: "1.31.1"
+          advanced-security: false
+          inputs: .github

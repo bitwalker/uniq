@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+  - package-ecosystem: mix
+    directory: /
+    schedule:
+      interval: weekly
+    versioning-strategy: lockfile-only
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: deps

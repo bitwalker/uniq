@@ -1,0 +1,7 @@
+# actionlint 1.7.12 predates GitHub's $/ self-repository workflow syntax.
+# https://github.blog/changelog/2026-07-30-reference-same-repository-actions-with-self-repository-syntax/
+# Keep the exception limited to our two reusable workflows; remove when supported.
+paths:
+  .github/workflows/{elixir,release}.yml:
+    ignore:
+      - '^reusable workflow call "\$/\.github/workflows/(checks|security)\.yml" at "uses" is not following the format '

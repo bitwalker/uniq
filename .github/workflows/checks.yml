@@ -1,0 +1,97 @@
+name: Build and package checks
+
+on:
+  workflow_call:
+    inputs:
+      release-tag:
+        type: string
+        default: ""
+      release-prerelease:
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  test:
+    name: Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      MIX_ENV: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - elixir: "1.16.3"
+            otp: "26.2.5.21"
+          - elixir: "1.18.4"
+            otp: "27.3.4.19"
+          - elixir: "1.20.5"
+            otp: "29.1.2"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+          version-type: strict
+      - run: mix deps.get --only test --check-locked
+      - run: mix deps.compile
+      - run: mix compile --warnings-as-errors
+      - run: mix test --warnings-as-errors
+
+  core:
+    name: Elixir 1.13 / OTP 24 package consumer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          elixir-version: "1.13.4"
+          otp-version: "24.3.4.17"
+          version-type: strict
+          install-rebar: false
+      - run: bash .github/scripts/check-package.sh core
+
+  package:
+    name: Format, docs, and package consumers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      MIX_ENV: docs
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          elixir-version: "1.18.4"
+          otp-version: "27.3.4.19"
+          version-type: strict
+      - name: Validate release version
+        if: ${{ inputs.release-tag != '' }}
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+          RELEASE_PRERELEASE: ${{ inputs.release-prerelease }}
+        run: elixir .github/scripts/check-release.exs
+      - run: mix deps.get --only docs --check-locked
+      - run: mix deps.unlock --check-unused
+      - run: mix format --check-formatted
+      - run: mix hex.audit
+      - run: mix docs --warnings-as-errors
+      - run: bash .github/scripts/check-package.sh

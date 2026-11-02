@@ -3,18 +3,66 @@ name: Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to validate on the selected ref (never publishes)
+        type: string
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  checks:
+    permissions:
+      contents: read
+    uses: $/.github/workflows/checks.yml
+    with:
+      release-tag: ${{ github.event.release.tag_name || inputs.tag }}
+      release-prerelease: ${{ github.event.release.prerelease || false }}
+
+  security:
+    permissions:
+      contents: read
+    uses: $/.github/workflows/security.yml
+
   publish:
-    name: Publish
-    runs-on: ubuntu-latest
+    name: Publish to Hex
+    needs: [checks, security]
+    if: ${{ github.event_name == 'release' && !github.event.release.prerelease }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: hex-publish
+    permissions:
+      contents: read
+    concurrency:
+      group: hex-publish
+      cancel-in-progress: false
+    env:
+      MIX_ENV: docs
     steps:
-    - uses: actions/checkout@v2
-    - uses: erlef/setup-beam@v1
-      with:
-        elixir-version: '1.18'
-        otp-version: '27'
-    - run: mix deps.get
-    - run: mix hex.publish --yes
-      env:
-        HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          elixir-version: "1.18.4"
+          otp-version: "27.3.4.19"
+          version-type: strict
+      - name: Recheck release version before publication
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: elixir .github/scripts/check-release.exs
+      - run: mix deps.get --only docs --check-locked
+      - run: mix docs --warnings-as-errors
+      - run: mix hex.build
+      - name: Publish package and documentation
+        run: mix hex.publish --yes
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
