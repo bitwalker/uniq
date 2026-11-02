@@ -4,7 +4,7 @@ defmodule Uniq.MixProject do
   def project do
     [
       app: :uniq,
-      version: "0.6.3",
+      version: "0.6.4",
       elixir: "~> 1.13",
       description: description(),
       package: package(),
