@@ -3,46 +3,35 @@ defmodule Uniq.Generator do
   This module is used to interact with the global state
   needed to correctly generate version 1 and version 6 UUIDs.
 
-  This state consists of two atomic values: the last timestamp at
-  which a UUID was generated; and the current clock sequence value.
+  This state consists of an atomic clock sequence value.
 
   On init, the clock sequence is seeded with a random value provided
   by interpreting bits from the cryptographic random number generator
   as an unsigned 14 bit integer.
 
-  On subsequent generations, the clock sequence is incremented by 1
-  if a UUID has already been generated with the same last timestamp.
-  If the timestamp has changed, the clock sequence remains unchanged.
+  The sequence is incremented for every generation, including when timestamps
+  repeat or the wall clock moves backwards. This does not make timestamps
+  monotonic.
   """
   use GenServer
 
   @compile {:inline, [get_atomic_ref: 0, now: 0]}
 
-  @timestamp_index 1
-  @clock_index 2
+  @clock_index 1
 
   @doc """
   Generates the next initial state for UUID creation.
   """
   def next do
     ref = get_atomic_ref()
-    last_ts = :atomics.get(ref, @timestamp_index)
     current_ts = now()
-
-    # Increment clock sequence if the timestamp has not changed
-    if last_ts == current_ts do
-      # Always increment the clock to ensure concurrent accesses 
-      # are unique for the same timestamp
-      clock = :atomics.add_get(ref, @clock_index, 1)
-
-      {current_ts, clock}
-    else
-      clock = :atomics.add_get(ref, @clock_index, 1)
-      :atomics.put(ref, @timestamp_index, current_ts)
-
-      {current_ts, clock}
-    end
+    clock = :atomics.add_get(ref, @clock_index, 1)
+    {current_ts, clock}
   end
+
+  @doc false
+  def timestamp_from_unix(microseconds) when is_integer(microseconds),
+    do: microseconds * 10 + 122_192_928_000_000_000
 
   ## Private
 
@@ -63,18 +52,9 @@ defmodule Uniq.Generator do
     end
   end
 
-  # Obtain the current time in UTC as the number of microseconds since
-  # the start of the gregorian calendar
+  # UUIDv1/v6 count 100 ns intervals since 1582-10-15 (RFC 9562 Appendix A).
   defp now do
-    system_time = System.system_time(:microsecond)
-
-    us = rem(system_time, 100_000)
-
-    system_time
-    |> :calendar.system_time_to_universal_time(:microsecond)
-    |> :calendar.datetime_to_gregorian_seconds()
-    |> Kernel.*(100_000)
-    |> Kernel.+(us)
+    System.system_time(:microsecond) |> timestamp_from_unix()
   end
 
   ## GenServer Implementation
@@ -82,7 +62,7 @@ defmodule Uniq.Generator do
   def start_link(_args), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   def init(_) do
-    ref = :atomics.new(2, signed: false)
+    ref = :atomics.new(1, signed: false)
 
     # Seed the clock index
     <<clock::unsigned-integer-size(14), _::2>> = :crypto.strong_rand_bytes(2)

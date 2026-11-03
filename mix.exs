@@ -21,6 +21,7 @@ defmodule Uniq.MixProject do
         extra_section: "Extras",
         extras: [
           {:"README.md", [title: "About"]},
+          "CHANGELOG.md",
           "guides/using_with_ecto.md",
           "guides/migration_from_elixir_uuid.md",
           {:"LICENSE.md", [title: "License"]}
@@ -84,7 +85,7 @@ defmodule Uniq.MixProject do
 
   defp package do
     [
-      files: ["lib", "mix.exs", "README.md", "LICENSE.md"],
+      files: ["lib", "mix.exs", "README.md", "CHANGELOG.md", "LICENSE.md"],
       maintainers: ["Paul Schoenfelder"],
       licenses: ["Apache-2.0"],
       links: %{
