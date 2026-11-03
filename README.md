@@ -11,6 +11,8 @@ Uniq provides generation, formatting, parsing, and analysis of UUIDs described b
 * Generates UUID versions 1, 3, 4, 5, 6, and 7.
 * Parses those versions and opaque UUIDv8 payloads. UUIDv8 supplies a version,
   variant, and bytes; its custom payload has no generic generation or timestamp interpretation.
+* Provides reversible UUIDv47 timestamp masking as v4-shaped facades. See the
+[facade guide](guides/UUID_V47.md) for usage and security boundaries.
 * Supports formatting UUIDs as canonical strings (e.g. `6ba7b810-9dad-11d1-80b4-00c04fd430c8`, with or without the dashes),
 as URNs, e.g. `urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8`, as well as a compact, 22-character, base64-encoded format using
 a URI-safe alphabet (e.g. `a6e4EJ2tEdGAtADAT9QwyA`). 

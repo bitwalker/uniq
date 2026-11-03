@@ -4,6 +4,13 @@
 
 ### Added
 
+- UUIDv47 facade generation and reversible masking, based on
+  [PR #28](https://github.com/bitwalker/uniq/pull/28) by @epinault. Corrected
+  SipHash message injection and low-48-bit mask selection for upstream
+  interoperability; added official primitive vectors and independent C facade
+  vectors. This is timestamp obfuscation, not authentication or a standardized
+  UUID version. See the facade guide for key management and security boundaries.
+
 - Opaque UUIDv8 parsing in every supported format, based on
   [PR #19](https://github.com/bitwalker/uniq/pull/19) by Vladimir Drobyshevskiy.
   The parser preserves payload bytes without inventing timestamp, sequence, or

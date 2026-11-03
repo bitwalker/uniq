@@ -23,6 +23,7 @@ defmodule Uniq.MixProject do
           {:"README.md", [title: "About"]},
           "CHANGELOG.md",
           "guides/using_with_ecto.md",
+          "guides/UUID_V47.md",
           "guides/migration_from_elixir_uuid.md",
           {:"LICENSE.md", [title: "License"]}
         ]
