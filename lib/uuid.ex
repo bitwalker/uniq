@@ -1,6 +1,8 @@
 defmodule Uniq.UUID do
   @moduledoc """
-  This module provides RFC 4122 compliant universally unique identifiers (UUIDs).
+  This module generates UUID versions 1, 3, 4, 5, 6, and 7 and parses
+  versions 1, 3, 4, 5, 6, 7, and 8, as described by RFC 9562.
+  UUIDv8 payloads are opaque; no timestamp, sequence, or node is inferred.
 
   See the [README](README.md) for general usage information.
   """
@@ -23,9 +25,9 @@ defmodule Uniq.UUID do
           format: :raw | :hex | :default | :urn | :slug,
           version: 1..8,
           variant: bitstring,
-          time: non_neg_integer,
-          seq: non_neg_integer,
-          node: <<_::48>>,
+          time: non_neg_integer | nil,
+          seq: non_neg_integer | nil,
+          node: <<_::48>> | nil,
           bytes: t
         }
 
@@ -247,9 +249,8 @@ defmodule Uniq.UUID do
   end
 
   @doc """
-  Generates a UUID using the proposed version 6 scheme, found
-  [here](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format-04#section-5.1).
-  This is a draft extension of RFC 4122, but has not yet been formally accepted.
+  Generates a UUID using the version 6 scheme in
+  [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562.html#section-5.6).
 
   Version 6 provides the following benefits over versions 1 and 4:
 
@@ -293,12 +294,11 @@ defmodule Uniq.UUID do
   end
 
   @doc """
-  Generates a UUID using the proposed version 7 scheme, found
-  [here](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format-04#section-5.2).
-  This is a draft extension of RFC 4122, but has not yet been formally accepted.
+  Generates a UUID using the version 7 scheme, found
+  [here](https://www.rfc-editor.org/rfc/rfc9562.html#section-5.7).
 
   UUID version 7 features a time-ordered value field derived from the widely implemented and well
-  known Unix Epoch timestamp source, the number of milliseconds seconds since midnight 1 Jan 1970
+  known Unix Epoch timestamp source, the number of milliseconds since midnight 1 Jan 1970
   UTC, leap seconds excluded. As well as improved entropy characteristics over versions 1 or 6.
 
   Implementations SHOULD utilize UUID version 7 over UUID version 1 and 6 if possible.
@@ -414,8 +414,9 @@ defmodule Uniq.UUID do
 
   ## Options
 
-  * `strict: boolean`, if true, requires strict RFC 4122 conformance,
-  i.e. version 6 is considered invalid
+  * `strict: boolean`, if true, limits accepted versions to the legacy
+    versions 1, 3, 4, and 5. Versions 6, 7, and 8 are rejected. The nil UUID
+    remains accepted. Historical variant handling for versions 1–5 is unchanged.
   """
   @spec valid?(binary) :: boolean
   @spec valid?(binary, Keyword.t()) :: boolean
@@ -425,7 +426,7 @@ defmodule Uniq.UUID do
     strict? = Keyword.get(opts, :strict, false)
 
     case parse(bin) do
-      {:ok, %__MODULE__{version: 6}} when strict? ->
+      {:ok, %__MODULE__{version: version}} when strict? and version in [6, 7, 8] ->
         false
 
       {:ok, _} ->
@@ -504,7 +505,7 @@ defmodule Uniq.UUID do
   # Parse version
   defp parse_raw(<<_::48, version::uint(4), _::bitstring>> = bin, %__MODULE__{} = acc) do
     case version do
-      v when v in [1, 3, 4, 5, 6, 7] ->
+      v when v in [1, 3, 4, 5, 6, 7, 8] ->
         with {:ok, uuid} <- parse_raw(version, bin, acc) do
           {:ok, %{uuid | bytes: bin}}
         end
@@ -568,7 +569,27 @@ defmodule Uniq.UUID do
     end
   end
 
-  # Parses proposed version 7 uuids
+  # Parse the version and variant of opaque UUIDv8 payloads (RFC 9562).
+  # We can't validate the meaningful part of a uuid itself, but we can extract version and check variant
+  defp parse_raw(8, <<1::1, 0::1>> = variant, pre_variant, post_variant, acc) do
+    with <<_custom_a::biguint(48), _version::4, _custom_b::12>> <- <<pre_variant::64>>,
+         <<_custom_c::62>> <- post_variant do
+      {:ok,
+       %__MODULE__{
+         acc
+         | version: 8,
+           variant: variant
+       }}
+    else
+      _ ->
+        {:error, {:invalid_format, :v8}}
+    end
+  end
+
+  defp parse_raw(8, variant, _time, _rest, _acc),
+    do: {:error, {:invalid_variant, variant}}
+
+  # Parses version 7 UUIDs
   defp parse_raw(7, <<1::1, 0::1>> = variant, time, rest, %__MODULE__{} = acc) do
     with <<time::biguint(48), _version::4, _rand_a::12>> <- <<time::64>>,
          <<_rand_b::62>> <- rest do
@@ -585,7 +606,7 @@ defmodule Uniq.UUID do
     end
   end
 
-  # Parses proposed version 6 uuids, which are very much like version 1, but with some field ordering changes
+  # Parses version 6 UUIDs, which are very much like version 1, but with some field ordering changes
   defp parse_raw(6, <<1::1, 0::1>> = variant, time, rest, %__MODULE__{} = acc) do
     with <<time_hi::48, _version::4, time_lo::12>> <- <<time::64>>,
          <<timestamp::uint(60)>> <- <<time_hi::48, time_lo::12>>,
@@ -608,7 +629,7 @@ defmodule Uniq.UUID do
 
   defp parse_raw(6, variant, _time, _rest, _acc), do: {:error, {:invalid_variant, variant}}
 
-  # Handles proposed version 7 and 8 uuids
+  # Handles other version uuids
   defp parse_raw(version, _variant, _time, _rest, _acc),
     do: {:error, {:unsupported_version, version}}
 
@@ -640,7 +661,7 @@ defmodule Uniq.UUID do
   * `:default`, produces strings like `"f81d4fae-7dec-11d0-a765-00a0c91e6bf6"`
   * `:urn`, produces strings like `"urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"`
   * `:hex`, produces strings like `"f81d4fae7dec11d0a76500a0c91e6bf6"`
-  * `:slug`, produces strings like `"-B1Prn3sEdCnZQCgyR5r9g=="`
+  * `:slug`, produces strings like `"-B1Prn3sEdCnZQCgyR5r9g"`
   * `:raw`, produces the raw binary encoding of the uuid in 128 bits
   """
   @spec to_string(formatted | info, format) :: String.t()

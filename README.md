@@ -1,18 +1,16 @@
 # Uniq
 
 [![Master](https://github.com/bitwalker/uniq/workflows/elixir/badge.svg?branch=main)](https://github.com/bitwalker/uniq/actions?query=workflow%3A%22elixir%22+branch%3Amain)
-[![Hex.pm Version](http://img.shields.io/hexpm/v/uniq.svg?style=flat)](https://hex.pm/packages/uniq)
+[![Hex.pm Version](https://img.shields.io/hexpm/v/uniq.svg?style=flat)](https://hex.pm/packages/uniq)
 
-Uniq provides generation, formatting, parsing, and analysis of RFC 4122 UUIDs, with
-support for the draft UUIDv6 extension. It is a package for Elixir projects, and can
-be found on Hex as `:uniq`.
+Uniq provides generation, formatting, parsing, and analysis of UUIDs described by
+[RFC 9562](https://www.rfc-editor.org/rfc/rfc9562.html). It is available on Hex as `:uniq`.
 
 ## Features
 
-* Follows the RFC 4122 specification, i.e. supports UUID versions 1, 3, 4, and 5 as described in the RFC
-* Supports UUIDv6 and UUIDv7, which are described in a proposed extension for RFC 4122, and improve upon desirable traits 
-of both UUIDv1 and UUIDv4 to provide the best of both, while removing their downsides.  See 
-[here](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format) for more information on how it does so.
+* Generates UUID versions 1, 3, 4, 5, 6, and 7.
+* Parses those versions and opaque UUIDv8 payloads. UUIDv8 supplies a version,
+  variant, and bytes; its custom payload has no generic generation or timestamp interpretation.
 * Supports formatting UUIDs as canonical strings (e.g. `6ba7b810-9dad-11d1-80b4-00c04fd430c8`, with or without the dashes),
 as URNs, e.g. `urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8`, as well as a compact, 22-character, base64-encoded format using
 a URI-safe alphabet (e.g. `a6e4EJ2tEdGAtADAT9QwyA`). 
@@ -25,7 +23,7 @@ a URI-safe alphabet (e.g. `a6e4EJ2tEdGAtADAT9QwyA`).
 ```elixir
 def deps do
   [
-    {:uniq, "~> 0.1"}
+    {:uniq, "~> 0.7"}
   ]
 end
 ```

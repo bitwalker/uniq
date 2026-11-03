@@ -9,7 +9,7 @@ defmodule Uniq.Test.Generators do
   @reserved_ms <<6::3>>
   @reserved_future <<7::3>>
   @rfc_versions [1, 3, 4, 5]
-  @versions [1, 3, 4, 5, 6, 7]
+  @versions [1, 3, 4, 5, 6, 7, 8]
   @variants [@reserved_ncs, @rfc_variant, @reserved_ms, @reserved_future]
   @reserved_variants [@reserved_ncs, @reserved_ms, @reserved_future]
   @reserved_variants_uniform [<<0::3>>, <<6::3>>, <<7::3>>]
@@ -20,7 +20,7 @@ defmodule Uniq.Test.Generators do
     gen all(
           {version, variant} <-
             bind(member_of(@variants), fn variant ->
-              # Version 6 requires the use of the correct variant to be valid
+              # Versions 6–8 require the use of the correct variant to be valid
               if variant in @reserved_variants do
                 bind(member_of(@rfc_versions), fn version -> constant({version, variant}) end)
               else
@@ -45,8 +45,8 @@ defmodule Uniq.Test.Generators do
             bind(bitstring(length: 128), fn <<start::48, v::4, mid::12, var::bitstring-size(3),
                                               rest::61>> = bits ->
               case v do
-                v when v in [6, 7] ->
-                  # Version 6 specifically only allows a single variant to be considered valid
+                v when v in [6, 7, 8] ->
+                  # Versions 6–8 specifically only allow a single variant to be considered valid
                   case var do
                     <<@rfc_variant, _::1>> ->
                       bind(member_of(@reserved_variants_uniform), fn variant ->
@@ -62,7 +62,7 @@ defmodule Uniq.Test.Generators do
                 v when v in @rfc_versions ->
                   # Any 3-bit pattern is technically valid as a variant in a UUID per the RFC, so we instead generate
                   # a known-invalid version.
-                  bind(integer(8..15), fn version ->
+                  bind(integer(9..15), fn version ->
                     constant(<<start::48, version::4, mid::12, var::bitstring-size(3), rest::61>>)
                   end)
 

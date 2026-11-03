@@ -14,7 +14,7 @@ defmodule Uniq.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       name: "Uniq",
       source_url: "https://github.com/bitwalker/uniq",
-      homepage_url: "http://github.com/bitwalker/uniq",
+      homepage_url: "https://github.com/bitwalker/uniq",
       docs: [
         main: "readme",
         api_reference: false,
@@ -80,7 +80,7 @@ defmodule Uniq.MixProject do
   end
 
   defp description do
-    "Provides UUID generation, parsing, and formatting. Supports RFC 4122, and the v6 draft extension"
+    "RFC 9562 UUID generation, parsing, and formatting, including opaque UUIDv8 parsing"
   end
 
   defp package do

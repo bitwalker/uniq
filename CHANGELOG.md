@@ -2,7 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- Opaque UUIDv8 parsing in every supported format, based on
+  [PR #19](https://github.com/bitwalker/uniq/pull/19) by Vladimir Drobyshevskiy.
+  The parser preserves payload bytes without inventing timestamp, sequence, or
+  node metadata. Existing v8 values can be stored through Ecto; v8 is not an
+  autogeneration option.
+
 ### Changed
+
+- `valid?(uuid, strict: true)` consistently restricts UUID versions to the legacy
+  set (1, 3, 4, 5, plus the nil UUID). UUIDv7, previously accepted by this option,
+  and UUIDv8 require default validation. Remove `strict: true` when validating
+  RFC 9562 v6/v7/v8 values. Historical variant handling for v1–v5 is unchanged.
 
 - The optional Ecto integration requires Ecto `~> 3.12`, matching the
   parameterized-type representation used by ScopedUUID.
