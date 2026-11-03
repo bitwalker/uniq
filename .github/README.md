@@ -20,9 +20,8 @@ The minimum compiler is tested without optional Ecto or documentation tooling.
 Package consumers compile fresh unpacked Hex contents outside this checkout,
 with separate dependency and build directories. Ecto consumers exercise schema
 primary/foreign keys against Ecto 3.12.0 and the newest allowed 3.x version.
-3.12 introduced the parameterized-type representation used by ScopedUUID.
-This does not validate every version allowed by the existing `~> 3.0` declaration;
-correcting that public lower bound is a separate compatibility decision.
+3.12 introduced the parameterized-type representation used by ScopedUUID and is
+the declared minimum for the optional Ecto integration (`~> 3.12`).
 Historical Ecto 3.12 resolves Decimal 2.x, which currently has security advisories;
 that isolated compatibility fixture is never published. The repository's locked
 dependencies are audited separately.

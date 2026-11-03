@@ -32,5 +32,5 @@ check_consumer() (
 check_consumer core
 if [[ "${mode}" == all ]]; then
   check_consumer ecto '3.12.0'
-  check_consumer ecto '~> 3.0'
+  check_consumer ecto '~> 3.12'
 fi

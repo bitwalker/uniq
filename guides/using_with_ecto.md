@@ -1,5 +1,8 @@
 # Using With Ecto
 
+The Ecto integration requires Ecto 3.12 or later within the 3.x series. Ecto remains
+optional when using Uniq for UUID generation, parsing, and formatting alone.
+
 You can use the type provided by this library in lieu of `Ecto.UUID`, simply use `Uniq.UUID` 
 where you would use `Ecto.UUID`, and specify `:binary` or `:string` as the type of the column 
 in your migrations, depending on what parameters you pass to the type. By default, with no

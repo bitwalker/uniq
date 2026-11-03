@@ -71,7 +71,7 @@ defmodule Uniq.MixProject do
   defp deps do
     [
       {:benchee, "~> 1.0", only: [:bench]},
-      {:ecto, "~> 3.0", optional: true},
+      {:ecto, "~> 3.12", optional: true},
       {:ex_doc, "> 0.0.0", only: [:docs], runtime: false},
       {:elixir_uuid, "> 0.0.0", only: [:bench]},
       {:stream_data, "~> 1.3.0", only: [:test]}
