@@ -571,7 +571,7 @@ defmodule Uniq.UUID do
 
   # Parse the version and variant of opaque UUIDv8 payloads (RFC 9562).
   # We can't validate the meaningful part of a uuid itself, but we can extract version and check variant
-  defp parse_raw(8, <<1::1, 0::1>> = variant, pre_variant, post_variant, acc) do
+  defp parse_raw(8, <<1::1, 0::1>> = variant, pre_variant, post_variant, %__MODULE__{} = acc) do
     with <<_custom_a::biguint(48), _version::4, _custom_b::12>> <- <<pre_variant::64>>,
          <<_custom_c::62>> <- post_variant do
       {:ok,
